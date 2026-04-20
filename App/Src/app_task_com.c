@@ -204,4 +204,5 @@ void StartComTask(void *argument)
 	    osDelay(100);
 
 	  }
-}
+}git add App/Src/app_task_com.c
+//测试git
