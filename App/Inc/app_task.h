@@ -27,25 +27,67 @@
 // 任务句柄
 // extern osThreadId_t comTaskHandle;
 extern osThreadId_t defaultTaskHandle;
+extern osThreadId_t ctrlTaskHandle;
 
 // 指示灯状态
 #define LED_ON           1    // 常亮
 #define LED_OFF          2    // 常灭
 #define LED_BLINK        3    // 闪烁
+#define UPS_ON            1    // UPS开启
+#define UPS_OFF           0    // UPS关闭
 
+
+
+// 定义系统状态结构体
+typedef struct {
+    uint32_t Torque[2];       // [0]:左力矩, [1]:右力矩 
+// 暂时就应该 后续加
+} SystemMsg_t;
+
+extern SystemMsg_t SysMsg;
 extern IWDG_HandleTypeDef hiwdg1;
 
 /*******************************************************
  串口通信相关变量
 *******************************************************/
 // 串口事件
-// #define COMRX_EVENT   (1UL << 0)    // 在bsp_usart.c中定义
+// #define EVENT_UART6_RX  (1UL << 0)    // 在bsp_usart.c中定义
 // #define TEST_EVENT       (1UL << 1)    // 升高事件
 
 // extern osEventFlagsId_t comEventHandle;
 
+extern osEventFlagsId_t ArmBKEventHandle;
 // 指令
 #define CMD_TEST         0xA1
 
 
+
+//UART6网口所接收的指令
+extern  uint8_t g_brake_state_ctrl; // 全局变量：抱闸状态控制
+extern  uint8_t g_park_state_ctrl;  // 全局变量：驻车状态控制
 #endif /* __APP_TASK_H_ */
+
+
+/**
+ * ┌─────────────────────────────────────────────────────────┐
+│                    UART6 网络命令                        │
+│     0x10(心跳) 0x11(UPS-未实现) 0x12(灯带)              │
+│     0x13(踏板) 0x14(抱闸) 0x15(状态上传)                │
+└─────────────────────────────────────────────────────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        ▼                  ▼                  ▼
+    灯带控制          踏板控制             抱闸控制
+   (WS2812)         (4路GPIO)            (PC13)
+   ✅ 只网络          ✅ 只网络            ✅ 只网络
+
+
+┌─────────────────────────────────────────────────────────┐
+│              本地按钮 GPIO 输入                           │
+│   KEY_UP/DOWN(升降) KEY_PARK(驻车) KEY_MOVE(运动启停)    │
+└─────────────────────────────────────────────────────────┘
+        │                  │                  │
+        ▼                  ▼                  ▼
+    升降电机           推杆方向          伺服启停
+    ✅ 只本地          ✅ 只本地         ✅ 只本地
+ */

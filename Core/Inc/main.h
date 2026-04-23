@@ -57,6 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ADC_ArmHeight_Pin GPIO_PIN_4
+#define ADC_ArmHeight_GPIO_Port GPIOA
 #define PS4_Pin GPIO_PIN_5
 #define PS4_GPIO_Port GPIOA
 #define PS3_Pin GPIO_PIN_6
@@ -65,6 +67,14 @@ void Error_Handler(void);
 #define PS2_GPIO_Port GPIOA
 #define PS1_Pin GPIO_PIN_4
 #define PS1_GPIO_Port GPIOC
+#define STOP_Pin GPIO_PIN_5
+#define STOP_GPIO_Port GPIOC
+#define KEY11_Pin GPIO_PIN_0
+#define KEY11_GPIO_Port GPIOB
+#define KEY10_Pin GPIO_PIN_1
+#define KEY10_GPIO_Port GPIOB
+#define KEY9_Pin GPIO_PIN_2
+#define KEY9_GPIO_Port GPIOB
 #define KEY8_Pin GPIO_PIN_7
 #define KEY8_GPIO_Port GPIOE
 #define KEY7_Pin GPIO_PIN_8
@@ -91,6 +101,30 @@ void Error_Handler(void);
 #define DEBUG_TX_GPIO_Port GPIOA
 #define DEBUG_RX_Pin GPIO_PIN_10
 #define DEBUG_RX_GPIO_Port GPIOA
+#define UPS_OFF_Pin GPIO_PIN_5
+#define UPS_OFF_GPIO_Port GPIOD
+#define UPS_ON_Pin GPIO_PIN_6
+#define UPS_ON_GPIO_Port GPIOD
+#define CTL_M1_0_Pin GPIO_PIN_7
+#define CTL_M1_0_GPIO_Port GPIOD
+#define CTL_M1_1_Pin GPIO_PIN_3
+#define CTL_M1_1_GPIO_Port GPIOB
+#define CTL_M2_0_Pin GPIO_PIN_4
+#define CTL_M2_0_GPIO_Port GPIOB
+#define CTL_M2_1_Pin GPIO_PIN_5
+#define CTL_M2_1_GPIO_Port GPIOB
+#define CTL_M3_0_Pin GPIO_PIN_6
+#define CTL_M3_0_GPIO_Port GPIOB
+#define CTL_M3_1_Pin GPIO_PIN_7
+#define CTL_M3_1_GPIO_Port GPIOB
+#define UPDOWN_0_Pin GPIO_PIN_8
+#define UPDOWN_0_GPIO_Port GPIOB
+#define UPDOWN_1_Pin GPIO_PIN_9
+#define UPDOWN_1_GPIO_Port GPIOB
+#define CTL_BK_0_Pin GPIO_PIN_0
+#define CTL_BK_0_GPIO_Port GPIOE
+#define CTL_BK_1_Pin GPIO_PIN_1
+#define CTL_BK_1_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

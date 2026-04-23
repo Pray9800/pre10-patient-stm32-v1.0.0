@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME PRE10-DOCTOR-STM32-V1.0.0)
+set(CMAKE_PROJECT_NAME pre10-patient-stm32-v1.0.0)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -48,8 +48,21 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_default.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_com.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_key.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_stop_ups_light.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_ctrl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_arm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_park.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_usart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_spi.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_torque_com.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_servomotor_com.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_adc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_crc.c
+
+
+
+
 )
 
 # Add include paths
@@ -72,4 +85,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+
+# 生成 map 文件，用于 VSCode 左侧的 Build Analyzer 内存分析
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
+    -Wl,-Map=${CMAKE_PROJECT_NAME}.map,--cref
 )

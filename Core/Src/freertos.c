@@ -69,6 +69,27 @@ const osThreadAttr_t keyTask_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for ctrlTask */
+osThreadId_t ctrlTaskHandle;
+const osThreadAttr_t ctrlTask_attributes = {
+  .name = "ctrlTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for armTask */
+osThreadId_t armTaskHandle;
+const osThreadAttr_t armTask_attributes = {
+  .name = "armTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for parkTask */
+osThreadId_t parkTaskHandle;
+const osThreadAttr_t parkTask_attributes = {
+  .name = "parkTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* Definitions for printfMutex */
 osMutexId_t printfMutexHandle;
 const osMutexAttr_t printfMutex_attributes = {
@@ -84,6 +105,11 @@ osEventFlagsId_t comEventHandle;
 const osEventFlagsAttr_t comEvent_attributes = {
   .name = "comEvent"
 };
+/* Definitions for ArmBKEvent */
+osEventFlagsId_t ArmBKEventHandle;
+const osEventFlagsAttr_t ArmBKEvent_attributes = {
+  .name = "ArmBKEvent"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -93,6 +119,9 @@ const osEventFlagsAttr_t comEvent_attributes = {
 void StartDefaultTask(void *argument);
 void StartComTask(void *argument);
 extern void StartKeyTask(void *argument);
+void StartCtrlTask(void *argument);
+void StartArmTask(void *argument);
+void StartParkTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -152,6 +181,15 @@ void MX_FREERTOS_Init(void) {
   /* creation of keyTask */
   keyTaskHandle = osThreadNew(StartKeyTask, NULL, &keyTask_attributes);
 
+  /* creation of ctrlTask */
+  ctrlTaskHandle = osThreadNew(StartCtrlTask, NULL, &ctrlTask_attributes);
+
+  /* creation of armTask */
+  armTaskHandle = osThreadNew(StartArmTask, NULL, &armTask_attributes);
+
+  /* creation of parkTask */
+  parkTaskHandle = osThreadNew(StartParkTask, NULL, &parkTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -161,6 +199,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of comEvent */
   comEventHandle = osEventFlagsNew(&comEvent_attributes);
+
+  /* creation of ArmBKEvent */
+  ArmBKEventHandle = osEventFlagsNew(&ArmBKEvent_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -202,6 +243,60 @@ __weak void StartComTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartComTask */
+}
+
+/* USER CODE BEGIN Header_StartCtrlTask */
+/**
+* @brief Function implementing the ctrlTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCtrlTask */
+__weak void StartCtrlTask(void *argument)
+{
+  /* USER CODE BEGIN StartCtrlTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCtrlTask */
+}
+
+/* USER CODE BEGIN Header_StartArmTask */
+/**
+* @brief Function implementing the armTask05 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartArmTask */
+__weak void StartArmTask(void *argument)
+{
+  /* USER CODE BEGIN StartArmTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartArmTask */
+}
+
+/* USER CODE BEGIN Header_StartParkTask */
+/**
+* @brief Function implementing the parkTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartParkTask */
+__weak void StartParkTask(void *argument)
+{
+  /* USER CODE BEGIN StartParkTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartParkTask */
 }
 
 /* Private application code --------------------------------------------------*/
