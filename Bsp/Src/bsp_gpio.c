@@ -12,6 +12,16 @@
 #include "bsp_gpio.h"
 
 
+
+
+__weak void BSP_STOP_Btn_Callback(void)
+{
+    // 这是一个弱函数，默认什么都不做。
+    //在app_task_stop_ups.c中重定义这个函数来处理急停按钮的特殊逻辑。
+   
+}
+
+
 /*******************************************************
  Author: PENG       Version: V1.0       Date:2026/03/26
  Function:          HAL_GPIO_EXTI_Callback
@@ -112,6 +122,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     else if (GPIO_Pin == STOP_Pin)
     {
         // 处理急停按钮STOP按键中断
+        BSP_STOP_Btn_Callback(); // 调用弱函数，用户可以在app_task_stop_ups.c中重定义这个函数来处理急停按钮的特殊逻辑。
+        // App_UPS_Update();
+    
     }
     else
     {
@@ -205,4 +218,9 @@ void BSP_Brake_Control(uint8_t reg_val)
         //App_Printf("Warning: Invalid Brake Reg Value: 0x%02X\r\n", reg_val);
     }
 }
+
+
+
+
+
 

@@ -24,15 +24,24 @@
 
 #define TASK_TIME        100  // 任务循环时间 单位 ms
 
+
+//抱闸解码事件
+#define EVENT_BRAKE_UPDATE    0x01
+// 驱动轮力矩控制专用通知 (发给 torqueMoveTaskHandle)
+#define FLAG_TORQUE_READY       (1UL << 0)  // 0x01: 双侧力矩数据解析完成
+
 // 任务句柄
 // extern osThreadId_t comTaskHandle;
 extern osThreadId_t defaultTaskHandle;
-extern osThreadId_t ctrlTaskHandle;
+extern osThreadId_t torqueMoveTaskHandle;
 
 // 指示灯状态
 #define LED_ON           1    // 常亮
 #define LED_OFF          2    // 常灭
 #define LED_BLINK        3    // 闪烁
+
+
+
 #define UPS_ON            1    // UPS开启
 #define UPS_OFF           0    // UPS关闭
 
@@ -57,14 +66,22 @@ extern IWDG_HandleTypeDef hiwdg1;
 // extern osEventFlagsId_t comEventHandle;
 
 extern osEventFlagsId_t ArmBKEventHandle;
+
+
 // 指令
 #define CMD_TEST         0xA1
 
 
 
 //UART6网口所接收的指令
-extern  uint8_t g_brake_state_ctrl; // 全局变量：抱闸状态控制
-extern  uint8_t g_park_state_ctrl;  // 全局变量：驻车状态控制
+extern volatile uint8_t g_brake_state_ctrl; // 全局变量：抱闸状态控制
+extern volatile uint8_t g_park_state_ctrl;  // 全局变量：驻车状态控制
+extern volatile uint8_t g_ups_state_ctrl ;
+extern volatile uint8_t light_reg[4]; //灯带状态寄存器数据区
+extern volatile uint16_t adc_current_height; 
+
+void FOOTP_Ctrl(uint8_t state);
+void App_UPS_Request(uint8_t req_state);
 #endif /* __APP_TASK_H_ */
 
 
@@ -83,6 +100,8 @@ extern  uint8_t g_park_state_ctrl;  // 全局变量：驻车状态控制
 
 
 ┌─────────────────────────────────────────────────────────┐
+
+
 │              本地按钮 GPIO 输入                           │
 │   KEY_UP/DOWN(升降) KEY_PARK(驻车) KEY_MOVE(运动启停)    │
 └─────────────────────────────────────────────────────────┘

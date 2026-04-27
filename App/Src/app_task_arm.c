@@ -1,8 +1,77 @@
-/* app_task_arm.c */
+/*******************************************************
+ Copyright (C), HangZou Jianjia Co.,Ltd.
+ File name:         app_task_arm.c
+ Author: PAN       Version: V1.0       Date:2026/04/27
+ Description:       机械臂控制任务
+ Function List:
+  * * 控制物理高度的获取（ADC拉绳传感器）。
+  * * 根据UART6指令控制抱闸状态（GPIO输出）和升降电机（GPIO输出）。
+ History:
+*******************************************************/
+
+
+
 #include "app_task.h"
 #include "bsp_gpio.h"
 #include "bsp_adc.h"
 #include "bsp_usart.h"
+
+
+
+ 
+
+void StartArmTask(void *argument)
+{
+
+    
+    // 记录上一次的物理抱闸状态，避免重复刷 GPIO
+    uint8_t last_brake_state = 0xFF; 
+    
+    // 初始化抱闸 后面解锁使用
+    BSP_Brake_Control(last_brake_state);
+
+    for(;;)
+    {
+        // 获取高度 (ADC拉绳传感器)
+        adc_current_height = BSP_ADC_GetArmHeight();
+
+        // ========================================================
+        // 抱闸控制 (独立运行)
+        // ========================================================
+        if (g_brake_state_ctrl != last_brake_state) 
+        {
+            BSP_Brake_Control(g_brake_state_ctrl);
+            last_brake_state = g_brake_state_ctrl; // 更新记录
+        }
+
+        // ========================================================
+        // 升降电机控制 (完全独立，解除锁死)
+        // ========================================================
+        if (ARM_UP_SIGN() == 1) 
+        {
+            MOTOR_ARM_UP();
+        }
+        else if (ARM_DOWN_SIGN() == 1) 
+        {
+            MOTOR_ARM_DOWN();
+        }
+        else 
+        {
+            // 两个都没按停止
+            MOTOR_ARM_STOP();
+        }
+
+
+        // ========================================================
+        // 如果 COM 任务来了抱闸指令，瞬间(0ms)唤醒，立刻执行上面的【模块A】！
+        // 如果没指令，干等 20ms 唤醒，刚好给升降的按键做消抖！
+        osEventFlagsWait(ArmBKEventHandle, EVENT_BRAKE_UPDATE, osFlagsWaitAny, 20);
+    }
+}
+
+
+
+
 
 
 // //控制机械臂高度 和机械臂是否抱闸
@@ -41,64 +110,6 @@
 //         osDelay(20);
 //     }
 // }
-
- 
-
-void StartArmTask(void *argument)
-{
-    uint16_t adc_current_height = 0; 
-    
-    // 记录上一次的物理抱闸状态，避免重复刷 GPIO
-    uint8_t last_brake_state = 0xFF; 
-    
-    // 初始化抱闸 后面解锁使用
-    BSP_Brake_Control(last_brake_state);
-
-    for(;;)
-    {
-        // 1. 获取高度 (ADC拉绳传感器)
-        adc_current_height = BSP_ADC_GetArmHeight();
-
-        // ========================================================
-        // 模块 A：抱闸控制 (独立运行)
-        // ========================================================
-        if (g_brake_state_ctrl != last_brake_state) 
-        {
-            BSP_Brake_Control(g_brake_state_ctrl);
-            last_brake_state = g_brake_state_ctrl; // 更新记录
-        }
-
-        // ========================================================
-        // 模块 B：升降电机控制 (完全独立，解除锁死)
-        // ========================================================
-        if (ARM_UP_SIGN() == 1) 
-        {
-            MOTOR_ARM_UP();
-        }
-        else if (ARM_DOWN_SIGN() == 1) 
-        {
-            MOTOR_ARM_DOWN();
-        }
-        else 
-        {
-            // 两个都没按停止
-            MOTOR_ARM_STOP();
-        }
-
-        // ========================================================
-        // 核心灵魂：带有 20ms 超时的事件等待 (完美替代 osDelay)
-        // ========================================================
-        // 如果 COM 任务来了抱闸指令，瞬间(0ms)唤醒，立刻执行上面的【模块A】！
-        // 如果没指令，干等 20ms 唤醒，刚好给升降的按键做消抖！
-        osEventFlagsWait(ArmBKEventHandle, EVENT_BRAKE_UPDATE, osFlagsWaitAny, 20);
-    }
-}
-
-
-
-
-
-
 
 
 

@@ -69,10 +69,10 @@ const osThreadAttr_t keyTask_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for ctrlTask */
-osThreadId_t ctrlTaskHandle;
-const osThreadAttr_t ctrlTask_attributes = {
-  .name = "ctrlTask",
+/* Definitions for torqueMoveTask */
+osThreadId_t torqueMoveTaskHandle;
+const osThreadAttr_t torqueMoveTask_attributes = {
+  .name = "torqueMoveTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -119,7 +119,7 @@ const osEventFlagsAttr_t ArmBKEvent_attributes = {
 void StartDefaultTask(void *argument);
 void StartComTask(void *argument);
 extern void StartKeyTask(void *argument);
-void StartCtrlTask(void *argument);
+void StartTorqueMove(void *argument);
 void StartArmTask(void *argument);
 void StartParkTask(void *argument);
 
@@ -181,8 +181,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of keyTask */
   keyTaskHandle = osThreadNew(StartKeyTask, NULL, &keyTask_attributes);
 
-  /* creation of ctrlTask */
-  ctrlTaskHandle = osThreadNew(StartCtrlTask, NULL, &ctrlTask_attributes);
+  /* creation of torqueMoveTask */
+  torqueMoveTaskHandle = osThreadNew(StartTorqueMove, NULL, &torqueMoveTask_attributes);
 
   /* creation of armTask */
   armTaskHandle = osThreadNew(StartArmTask, NULL, &armTask_attributes);
@@ -245,22 +245,22 @@ __weak void StartComTask(void *argument)
   /* USER CODE END StartComTask */
 }
 
-/* USER CODE BEGIN Header_StartCtrlTask */
+/* USER CODE BEGIN Header_StartTorqueMove */
 /**
-* @brief Function implementing the ctrlTask thread.
+* @brief Function implementing the torqueMoveTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartCtrlTask */
-__weak void StartCtrlTask(void *argument)
+/* USER CODE END Header_StartTorqueMove */
+__weak void StartTorqueMove(void *argument)
 {
-  /* USER CODE BEGIN StartCtrlTask */
+  /* USER CODE BEGIN StartTorqueMove */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartCtrlTask */
+  /* USER CODE END StartTorqueMove */
 }
 
 /* USER CODE BEGIN Header_StartArmTask */

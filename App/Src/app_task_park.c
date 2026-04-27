@@ -1,15 +1,76 @@
 /*******************************************************
  Copyright (C), HangZhou Jianjia Co.,Ltd.
  File name:         app_task_park.c
- Author: PENG       Version: V1.0       Date:2026/04/23
- Description: 驻车任务处理
- Function List:
+ Author: PAN       Version: V1.0       Date:2026/04/23
+ Description: 光电限位开关执行以及UART6控制FOOTP驻车
+ Function List: 
+ * - UART6接收指令控制FOOTP驻车状态（收回/顶起)
+ * - 光电开关接收信号控制3个推杆电机的独立收回与限（但是源代码暂未用上）
+ * - 按键控制三个电机的统一收回与顶起（对应老代码 case 4 和 case 2）
  History:
 *******************************************************/
+
+
+
+
+
 #include "app_task.h"
 #include "bsp_gpio.h"
 
 
+
+/*******************************************************
+ Author: PAN       Version: V1.0       Date:2026/04/26
+ Function:          FOOTP_Ctrl
+ Description:       控制驻车状态（UART6控制）
+ Calls:             HAL_GPIO_WritePin
+ Called By:         应用层
+ Input:             state FOOTP状态设定
+ Output:            无
+ Return:            无
+ Others:            无
+*******************************************************/
+void FOOTP_Ctrl(uint8_t state)
+{
+
+        // 判断驻车按键状态
+        if (state == 0XFF) 
+        {
+            // 按下：收回推杆
+            FOOTP_0_ON() ;
+            FOOTP_1_ON() ;
+            FOOTP_2_ON() ;
+            FOOTP_3_ON() ;
+
+        }
+        else if(state == 0x00) 
+        {
+            // 松开：顶起推杆
+            FOOTP_0_OFF() ;
+            FOOTP_1_OFF() ;
+            FOOTP_2_OFF() ;
+            FOOTP_3_OFF() ;
+        }
+
+  
+  
+    
+}
+
+
+
+
+/*******************************************************
+ Author: PAN        Version: V1.0       Date:2026/04/26
+ Function:          FOOTP_Ctrl
+ Description:       KEY按键采用PS4控制驻车状态
+ Calls:             HAL_GPIO_WritePin
+ Called By:         应用层
+ Input:             
+ Output:            无
+ Return:            无
+ Others:            无
+*******************************************************/
 void StartParkTask(void *argument)
 {
 for(;;)
@@ -30,6 +91,58 @@ for(;;)
     }
     
 }
+
+#if 0 // 设为 1 即可开启编译
+void PSWITCHDetect()
+{
+  if(PS1_READ()== GPIO_PIN_SET)//第1#
+  {
+     M1_0_OFF(); 
+     M1_1_OFF() ;     // 停止 M1
+    //  PEout(M1_A_Pin,0);
+    //  PEout(M1_B_Pin,0);     // 停止 M1
+  }
+  else
+  {
+     M1_0_ON() ;
+     M1_1_OFF();      // 启动 M1
+    // PEout(M1_A_Pin,1);
+    // PEout(M1_B_Pin,0);      // 启动 M1
+  }
+  if(PS2_READ()== GPIO_PIN_SET)
+  {
+     M2_0_OFF(); 
+     M2_1_OFF();     // 停止 M2
+    //  PEout(M2_A_Pin,0);
+    //  PEout(M2_B_Pin,0);     // 停止 M2
+  }
+  else
+  {
+     M2_0_ON() ;
+     M2_1_OFF();      // 启动 M2
+    // PEout(M2_A_Pin,1);
+    // PEout(M2_B_Pin,0);      // 启动 M2
+  }
+  if(PS3_READ()== GPIO_PIN_SET)
+  {
+     M3_0_OFF(); 
+     M3_1_OFF() ;     // 停止 M3
+    // PEout(M3_A_Pin,0);
+    // PBout(M3_B_Pin,0);       // 停止 M3
+  }
+  else
+  {
+     M3_0_ON() ;
+     M3_1_OFF();      // 启动 M3
+    // PEout(M3_A_Pin,1);
+    // PBout(M3_B_Pin,0);        // 启动 M3
+  }
+}
+
+#endif
+
+
+
 
 
 

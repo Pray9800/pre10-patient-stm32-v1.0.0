@@ -48,8 +48,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_default.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_com.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_key.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_stop_ups_light.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_ctrl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_stop_ups.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_torqueMove.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_arm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_park.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_gpio.c
@@ -59,6 +59,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_servomotor_com.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_adc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_crc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_ws2812.c
+
 
 
 
@@ -91,3 +93,15 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
     -Wl,-Map=${CMAKE_PROJECT_NAME}.map,--cref
 )
+
+
+
+# 生成 hex 文件
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex
+    $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.hex)
+
+# 生成 bin 文件
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary
+    $<TARGET_FILE:${CMAKE_PROJECT_NAME}> ${CMAKE_PROJECT_NAME}.bin)

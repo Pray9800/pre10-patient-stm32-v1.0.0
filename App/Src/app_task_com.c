@@ -11,26 +11,45 @@
 // #include "bsp_delay.h"
 #include "bsp_gpio.h"
 #include "bsp_usart.h"
+#include "bsp_spi.h"
+#include "bsp_crc.h"
+#include "bsp_ws2812.h"
 #include "cmsis_os2.h"
 #include "bsp_torque_com.h"
 #include <string.h>
 #include "bsp_crc.h"
-
+#include "stdio.h"
 // 解析后的数据结构体
 typedef struct{
-    uint8_t  cmd;    // 命令
-    uint8_t  reg_addr;
+    uint8_t    cmd;    // 命令
+    uint8_t    reg_addr;//寄存器地址
     uint8_t   *data;  // 数据主体指针
 }rxdata_t;
 
-// 待发送的数据结构体
+// 待发送的数据结构体 由于写入和读取指令的应答格式不同，暂时不定义统一结构体了，直接在函数里处理了
+//写的入指令校验通过就原来数据应答
 typedef struct{
-    uint16_t  cmd;    // 命令(特别说明：读写+地址)
-    uint8_t   *data;  // 数据主体指针
-}txdata_t;
+    uint8_t  cmd;    // 命令(特别说明：读写+地址)
+    uint8_t  reg_addr; //寄存器地址
+    uint8_t  *data;  // 数据主体指针
+}txdata_w_t;  
 
-uint8_t g_brake_state_ctrl = 0;
-uint8_t g_park_state_ctrl = 0;
+
+
+// //灯带WS2812结构体 暂时用不上 
+// typedef struct{
+//     uint8_t  num;    // 灯带数量
+//     uint32_t  color; //颜色寄存器
+
+// }ws812_t;   
+
+
+uint8_t volatile g_brake_state_ctrl = 0;
+uint8_t volatile g_park_state_ctrl = 0;
+uint8_t volatile g_ups_state_ctrl = 0;
+uint8_t volatile light_reg[4]={0x00,0x00,0x00,0x00}; //灯带状态寄存器数据区
+uint16_t volatile adc_current_height = 0;  //机械臂高度
+
 SystemMsg_t SysMsg = {0};
 
 
@@ -40,6 +59,9 @@ SystemMsg_t SysMsg = {0};
  Description:       解析接收到的数据包
  Calls:
  Called By:
+
+
+
  Input:
  Output:
  Return:
@@ -51,6 +73,7 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
     if (rxlen < 6) 
     {
         return 3; 
+    
     }
 
     // 1. 校验设备地址码 (0x0A)
@@ -62,97 +85,138 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
     // 2. CRC16 校验
     uint16_t calc_crc = CRC16_Modbus(rxbuf, rxlen - 2);
     uint16_t rx_crc = rxbuf[rxlen - 2] | (rxbuf[rxlen - 1] << 8);
+
+    App_Printf("calc_crc is 0x%04X\r\n", calc_crc);
+    App_Printf("rx_crc is 0x%04X\r\n", rx_crc);
     
+
     if (calc_crc != rx_crc) 
     {
+        
+        App_Printf("ComTask: CRC Check ok and data definitely wrong\r\n");
         return 2;   // CRC校验失败
+       
     }
 
     // uint8_t func_code = rxbuf[1]; 
     // uint8_t reg_addr  = rxbuf[2]; 
     // 高8位存功能码(03/06)，低8位存寄存器(10/11/12等)
     // rxdata->cmd = (uint16_t)((func_code << 8) | reg_addr);//取消原来16位cmd用法
+
     rxdata->cmd = rxbuf[1]; 
     rxdata->reg_addr = rxbuf[2]; 
+    App_Printf("ComTask: CRC Check ok and data savesuccessfully: cmd=0x%02X, reg_addr=0x%02X\r\n", rxdata->cmd, rxdata->reg_addr);
+
     // 绑定数据指针 (不管是 03 还是 06，后续数据区都从索引 3 开始)
     if (rxdata->cmd == 0x03 || rxdata->cmd == 0x06) 
     {
+       
         rxdata->data = &rxbuf[3];
+        App_Printf("ComTask:  data save successfully\r\n");
+   
     }
     else 
     {
         return 3;  // 不支持的功能码
+        //0
     }
 
     return 0; // 解析成功
+    App_Printf("ComTask: CRC Check ok and data savesuccessfully\r\n");
 }
 
 
 
-/*******************************************************
- Author: PENG       Version: V1.0       Date:2026/01/19
- Function:          TxData_Send
- Description:       打包并发送数据包
- Calls:
- Called By:
- Input:
- Output:
- Return:
- Others:
-*******************************************************/
-void TxData_Send(txdata_t *txdata)
+
+
+
+// ==========================================
+// 应答函数和业务分发函数分开写，逻辑更清晰
+// ==========================================
+void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 {
-    uint8_t txbuf[17] = {0}; // 发送缓冲区
+    if (rxbuf == NULL || rxlen < 6) return; // 安全校验
 
-    // 帧头部
-    txbuf[0] =0x0A;
-    // 状态反馈类型
-    txbuf[1] =txdata->cmd;
-    // 数据内容
-    
-    memcpy(&txbuf[5], txdata->data, 4);
+     uint8_t reg_len=0; // 数据长度（,每个case里面确定）
+    // 直接从原始数组中提取关键信息
+    uint8_t cmd      = rxbuf[1]; // 功能码
+    uint8_t reg_addr = rxbuf[2]; // 寄存器地址
 
-    // 校验（当前版本暂无校验，预留接口）
-    uint16_t tx_crc = CRC16_Modbus(txbuf, 9);
-    txbuf[9] = tx_crc & 0xFF;
-    txbuf[10] = (tx_crc >> 8) & 0xFF;
 
-    // 发送数据包
-    Usart6_Send_Data(txbuf, 11);
-}
-
-/*******************************************************
- Author: PENG       Version: V1.0       Date:2026/01/19
- Function:          Command_Process
- Description:       处理接收到的指令
- Calls:
- Called By:
- Input:
- Output:
- Return:
- Others:
-*******************************************************/
-void Command_Process(rxdata_t *rxdata, txdata_t *txdata)
-{
-    // 根据指令类型处理不同的指令
-    switch(rxdata->cmd)
+    // ---------------------------------------------------------
+    // 0x06 写指令：极速回弹原始数据
+    // ---------------------------------------------------------
+    if (cmd == 0x06)
     {
-        case CMD_TEST:    // A1 测试指令
-            App_Printf("ComTask: Command Test received\r\n");
-            // 回复测试结果
-            txdata->cmd = 0; // 回复指令
-            txdata->data[3] = 0x01; // 测试结果
-            txdata->data[2] = 0;
-            txdata->data[1] = 0;
-            txdata->data[0] = 0;
-            TxData_Send(txdata);
-            break;
+        Usart6_Send_Data(rxbuf, rxlen); //原路返回
+        return; 
+    }
 
-        // TODO: 其他指令处理
-        
-        default:
-            App_Printf("ComTask: Unknown command received: 0x%02X\r\n", rxdata->cmd);
-            break;
+    // ---------------------------------------------------------
+    // 0x03 读指令：根据寄存器地址组装应答包
+    // ---------------------------------------------------------
+    if (cmd == 0x03)
+    {
+        uint8_t payload[16] = {0};   // 临时数据载体 读的数据
+
+        // 根据数组里的寄存器地址，直接走业务逻辑
+        switch (reg_addr)
+        {
+            case 0x11: payload[0] = g_ups_state_ctrl;  reg_len=1; break; // UPS
+
+            case 0x12: 
+                payload[0] = light_reg[0];
+                payload[1] = light_reg[1];
+                payload[2] = light_reg[2];
+                payload[3] = light_reg[3];
+                reg_len=4;
+                break; // 灯带
+
+            case 0x13: payload[0] = g_park_state_ctrl; reg_len=1;break; // 驻车
+
+            case 0x14: payload[0] = g_brake_state_ctrl; reg_len=1;break; // 抱闸
+
+            case 0x15: 
+            {
+                payload[0] = (adc_current_height >> 8) & 0xFF; 
+                payload[1] = adc_current_height & 0xFF; 
+                reg_len=2;       
+                break; // 高度
+            }
+            default: return; // 未知寄存器
+        }
+
+        // ---------------------------------------------------------
+        // 协议打包层：利用你之前制定的查字典函数
+        // ---------------------------------------------------------
+        uint8_t txbuf[32] = {0};
+        uint16_t tx_len = 0;
+        uint16_t crc = 0;
+
+        if (reg_len == 0) return; 
+
+        // 装填头部
+        txbuf[0] = rxbuf[0];      // 从机地址
+        txbuf[1] = cmd;           // 功能码 0x03
+        txbuf[2] = reg_len;      // 数据长度
+
+        // 装填数据
+        for (int i = 0; i < reg_len; i++)
+        {
+            txbuf[3 + i] = payload[i];
+        }
+
+        tx_len = 3 + reg_len; 
+
+        // 计算CRC并发送
+        crc = CRC16_Modbus(txbuf, tx_len);
+        txbuf[tx_len++] = crc & 0xFF;
+        txbuf[tx_len++] = (crc >> 8) & 0xFF;
+        Usart6_Send_Data(txbuf, tx_len);
+        App_Printf("ComTask: Received length: %d\r\n", rxlen);
+        for (int i = 0; i < tx_len; i++) {
+            App_Printf("%02X ", txbuf[i]);
+        }
     }
 }
 
@@ -166,63 +230,71 @@ void Command_Process(rxdata_t *rxdata, txdata_t *txdata)
  Description:       协议指令业务分发中心
  Input:             p_rxdata: 已经解析好的数据结构体指针
 *******************************************************/
-void Protocol_Cmd_Dispatch(rxdata_t *p_rxdata)
-{
-    //  确保指针不为空
-    if (p_rxdata == NULL || p_rxdata->data == NULL) return;
- 
-    // 第一层读写区分
-    switch(p_rxdata->cmd)
+    void Protocol_Cmd_Dispatch(rxdata_t *p_rxdata)
     {
-        // ==========================================
-        // 写单寄存器 (主机下发命令)
-        // ==========================================
-        case 0x06: 
-            // 第二层：判断具体写哪个寄存器
-            switch(p_rxdata->reg_addr)
-            {
-               case 0x11: // UPS通断
-                    // 处理灯带...
-                    break;  
-                case 0x14: // 抱闸
-                    g_brake_state_ctrl = p_rxdata->data[0];
-                    osEventFlagsSet(ArmBKEventHandle, EVENT_BRAKE_UPDATE);
-                    break;
-                
-                case 0x13: // 驻车   原来是按钮控制驻车，现在改成串口控制了暂定
-                    g_park_state_ctrl = p_rxdata->data[0]; 
-                    break;
+        //  确保指针不为空
+        if (p_rxdata == NULL || p_rxdata->data == NULL) return;
+    
+        // 第一层读写区分
+        switch(p_rxdata->cmd)
+        {
+            // ==========================================
+            // 写单寄存器 (主机下发命令)
+            // ==========================================
+            case 0x06: 
+                // 第二层：判断具体写哪个寄存器
+                switch(p_rxdata->reg_addr)
+                {
+                case 0x11: // UPS通断
+                        uint8_t target_ups = p_rxdata->data[0];
+                        App_UPS_Request(target_ups); //g_ups_state_ctrl在后续赋值
+                        App_Printf("g_ups_state_ctrl update to %d\r\n", g_ups_state_ctrl);
+                        break;  
+                    case 0x14: // 抱闸
+                        g_brake_state_ctrl = p_rxdata->data[0]; 
+                        App_Printf("g_brake_state_ctrl update to %d\r\n", g_brake_state_ctrl);
+                        osEventFlagsSet(ArmBKEventHandle, EVENT_BRAKE_UPDATE);
+                        break;                  
+                    case 0x13: // 驻车 主要是FOOTP的gpio控制
+                        g_park_state_ctrl = p_rxdata->data[0]; 
+                        FOOTP_Ctrl(g_park_state_ctrl);
+                        App_Printf("g_park_state_ctrl update to %d\r\n", g_park_state_ctrl);
+                        break;
+                        
+                    case 0x12: // 灯带
                     
-                case 0x12: // 灯带
-                    // 处理灯带...
-                    break;
+                    light_reg[0] = p_rxdata->data[0]; // LED 灯数量
+                    light_reg[1] = p_rxdata->data[1]; // 绿色 G
+                    light_reg[2] = p_rxdata->data[2]; // 红色 R
+                    light_reg[3] = p_rxdata->data[3]; // 蓝色 B
 
-  
-            }
-            break; 
+                    // 提取并核对参数 (增加代码可读性，防止传参错位)
+                    uint8_t led_num = p_rxdata->data[0];
+                    uint8_t led_g   = p_rxdata->data[1]; // 第2字节是绿
+                    uint8_t led_r   = p_rxdata->data[2]; // 第3字节是红
+                    uint8_t led_b   = p_rxdata->data[3]; // 第4字节是蓝
 
-        // ==========================================
-        // 读单寄存器 (主机来查岗)
-        // ==========================================
-        case 0x03:
-            // 第二层：判断具体读哪个寄存器
-            switch(p_rxdata->reg_addr)
-            {
-                case 0x14: // 查询抱闸
+                   
+                    // 自动处理 SPI 占空比转换、D-Cache 清洗和 DMA 发送
+                    ws2812_set_num(led_num, led_r, led_g, led_b);
 
-                    break;
+                    // 打印信息调试用，正式发布可以注释掉
+                    App_Printf("WS2812 Update -> Num:%d, R:%02X, G:%02X, B:%02X\r\n", 
+                               led_num, led_r, led_g, led_b);
+                    
+                        break;
+                }
+                break; 
+
+            // ==========================================
+            // 读单寄存器 功能码 0x03 (主机查询状态)
+            // ==========================================
+           
                 
-                case 0x15: // 查询大臂高度
-                    uint16_t current_height = 60000; 
-
-                    break;
-            }
-            break; // 结束读指令大分支
-            
-        default:
-            break;
+            default:
+                break;
+        }
     }
-}
 
 
 
@@ -245,141 +317,125 @@ void Protocol_Cmd_Dispatch(rxdata_t *p_rxdata)
  Return:
  Others:
 *******************************************************/
-
+#if 0
 void StartComTask(void *argument)
 {
-            uint8_t  rxbuf[256] = {0x0A,0X06,0X14,0X01,0XAC,0XBD};      // 待解析的数据包
+            //uint8_t  rxbuf[256] = {0x0A,0X03,0X11,0X01,0X6C,0X3E};      // 待解析的数据包
+            uint8_t  rxbuf[256] = {0x0A,0X03,0X12,0X04,0XFE,0X9F};   
+            
             rxlen=6; // 模拟接收到的数据长度
             rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
-            txdata_t txdata ;	    // 待发送的数据包
             
             // 解析接收到的数据包
             if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
-                Protocol_Cmd_Dispatch(&rxdata);
-                Command_Process(&rxdata, &txdata);   // 处理指令 发送回去指令
+                Protocol_Cmd_Dispatch(&rxdata); //分发指令
+                Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
+            } else {
+                App_Printf("ComTask: RxData_Parse Error\r\n");
+                App_Printf("ComTask: Received length: %d\r\n", rxlen);
+                for (int i = 0; i < rxlen; i++) {
+                    App_Printf("%02X ", rxbuf[i]);
+                }
+
+            }           
+}
+#endif
+
+void StartComTask(void *argument)
+{
+    uint32_t flags;
+    uint8_t  rxbuf[256] = {0};      // 待解析的数据包
+    // uint8_t  rx[10] = {0};          // 接收数据包内容
+    // uint8_t  tx[4] = {0};           // 发送数据包内容
+    rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
+    // txdata_t txdata ;	    // 待发送的数据包
+    //用于存放力矩解析结果的局部变量
+    uint32_t parsed_torque[2] = {0};
+    uint8_t  torque_count = 0;
+
+    // 开启底层接收
+    // BSP_UART_Start_Receive();  暂时没写
+
+    for(;;)
+    {
+        // 阻塞等待 4 个串口的任意数据到来
+        flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
+
+        //  开始分发数据
+        if (flags & EVENT_UART6_RX) {             
+            // 提取接收到的数据包
+            // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
+            memcpy(rxbuf, dma_rxbuf, rxlen); 
+            App_Printf("ComTask: Received length: %d\r\n", rxlen);
+            for (int i = 0; i < rxlen; i++) {
+                App_Printf("%02X ", rxbuf[i]);
+            }
+            App_Printf("\r\n");
+            
+
+            // 解析接收到的数据包
+            if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
+                Protocol_Cmd_Dispatch(&rxdata); //分发指令
+                Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
             } else {
                 App_Printf("ComTask: RxData_Parse Error\r\n");
             }
-
-            
-}
-
-
-// void StartComTask(void *argument)
-// {
-//     uint32_t flags;
-//     uint8_t  rxbuf[256] = {0};      // 待解析的数据包
-//     // uint8_t  rx[10] = {0};          // 接收数据包内容
-//     // uint8_t  tx[4] = {0};           // 发送数据包内容
-//     rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
-//     txdata_t txdata ;	    // 待发送的数据包
-//     //用于存放力矩解析结果的局部变量
-//     uint32_t parsed_torque[2] = {0};
-//     uint8_t  torque_count = 0;
-//     // 1. 开启底层接收
-//     // BSP_UART_Start_Receive();  暂时没写
-
-//     for(;;)
-//     {
-//         // 阻塞等待 4 个串口的任意数据到来
-//         flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
-
-//         //  开始分发数据
-//         if (flags & EVENT_UART6_RX) {             
-//             // 提取接收到的数据包
-//             // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
-//             memcpy(rxbuf, dma_rxbuf, rxlen); 
-//             App_Printf("ComTask: Received length: %d\r\n", rxlen);
-//             for (int i = 0; i < rxlen; i++) {
-//                 App_Printf("%02X ", rxbuf[i]);
-//             }
-//             App_Printf("\r\n");
-//             osEventFlagsSet(ArmBKEventHandle, EVENT_BRAKE_UPDATE);//抱闸的唤醒
-
-//             // 解析接收到的数据包
-//             if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
-//                 Protocol_Cmd_Dispatch(&rxdata);
-//                 Command_Process(&rxdata, &txdata);   // 处理指令 发送回去指令
-//             } else {
-//                 App_Printf("ComTask: RxData_Parse Error\r\n");
-//             }
-//         }
+        }
         
-//         if (flags & EVENT_UART3_RX) {
-//             // 力矩传感器数据解析
-//             memcpy(rxbuf, rxbuf_u3, rxlen_u3);
-//             torque_count = Torque_Parse_mode(rxbuf, rxlen_u3, parsed_torque);
+        if (flags & EVENT_UART3_RX) {
+            // 力矩传感器数据解析
+            memcpy(rxbuf, rxbuf_u3, rxlen_u3);
+            torque_count = Torque_Parse_mode(rxbuf, rxlen_u3, parsed_torque);
 
-//             //打印读取到数据
-//             App_Printf("ComTask: Received length: %d\r\n", rxlen);
-//             for (int i = 0; i < rxlen; i++) {
-//                 App_Printf("%02X ", rxbuf[i]);
-//             }
-//             App_Printf("\r\n");
+            //打印读取到数据
+            App_Printf("ComTask: Received length: %d\r\n", rxlen);
+            for (int i = 0; i < rxlen; i++) {
+                App_Printf("%02X ", rxbuf[i]);
+            }
+            App_Printf("\r\n");
 
 
-//             // 4. 【核心触发逻辑】：只有成功解析出2个力矩值，才去唤醒大脑！
-//             if (torque_count == 2) {
-//                 // A. 将干净的数据存入全局情报站
-//                 SysMsg.Torque[0] = parsed_torque[0];
-//                 SysMsg.Torque[1] = parsed_torque[1];
+            // 解析出2个力矩值，才去唤醒大脑
+            if (torque_count == 2) {
+                // A. 将干净的数据存入全局情报站
+                SysMsg.Torque[0] = parsed_torque[0];
+                SysMsg.Torque[1] = parsed_torque[1];
                 
-//                 // B. 扣动扳机，唤醒 ctrlTask 去计算速度和驱动电机！
-//                 osThreadFlagsSet(ctrlTaskHandle, 0x01); 
-//             } else {
-//                 // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行
-//                 App_Printf("ComTask(U3): Torque Parse Failed or Not Double Mode!\r\n");
-//             }
+                // 扣动扳机，唤醒 ctrlTask 去计算速度和驱动电机！
+                osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY); 
+            } else {
+                // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行
+                App_Printf("ComTask(U3): Torque Parse Failed or Not Double Mode!\r\n");
+            }
 
 
             
-//         }
+        }
 
-//         if (flags & EVENT_UART2_RX) {
-//             // 驱动轮1号反馈来了，扔给驱动解析器
-//             memcpy(rxbuf, rxbuf_u2, rxlen_u2);
-//             // DriveWheel_Parse_Process(1, rxbuf, rxlen_u2);
-//                       //打印读取到数据
-//             App_Printf("ComTask: Received length: %d\r\n", rxlen_u2);
-//             for (int i = 0; i < rxlen_u2; i++) {
-//                 App_Printf("%02X ", rxbuf[i]);
-//             }
-//             App_Printf("\r\n");
-//         }
+        if (flags & EVENT_UART2_RX) {
+            // 驱动轮1号反馈来了，扔给驱动解析器
+            memcpy(rxbuf, rxbuf_u2, rxlen_u2);
+            // DriveWheel_Parse_Process(1, rxbuf, rxlen_u2);
+                      //打印读取到数据
+            App_Printf("ComTask: Received length: %d\r\n", rxlen_u2);
+            for (int i = 0; i < rxlen_u2; i++) {
+                App_Printf("%02X ", rxbuf[i]);
+            }
+            App_Printf("\r\n");
+        }
         
-//         if (flags & EVENT_UART4_RX) {
-//             // 驱动轮2号反馈来了
-//             memcpy(rxbuf, rxbuf_u4, rxlen_u4);
-//             // DriveWheel_Parse_Process(2, rxbuf, rxlen_u4);
-//             App_Printf("ComTask: Received length: %d\r\n", rxlen_u4);
-//             for (int i = 0; i < rxlen_u4; i++) {
-//             App_Printf("%02X ", rxbuf[i]);
-//             }
-//             App_Printf("\r\n");
+        if (flags & EVENT_UART4_RX) {
+            // 驱动轮2号反馈来了
+            memcpy(rxbuf, rxbuf_u4, rxlen_u4);
+            // DriveWheel_Parse_Process(2, rxbuf, rxlen_u4);
+            App_Printf("ComTask: Received length: %d\r\n", rxlen_u4);
+            for (int i = 0; i < rxlen_u4; i++) {
+            App_Printf("%02X ", rxbuf[i]);
+            }
+            App_Printf("\r\n");
             
-//         }
-//     }
-// }
-
-
-
-inline unsigned int CRC16_MODBUS(unsigned char *data,unsigned int len)
-{
-  unsigned int i,j, tmp,CRC16;
-  
-  CRC16 = 0xffff;
-  for(i = 0; i < len;i++)
-  {
-    CRC16 ^= data[i];
-    for(j = 0; j < 8;j++)
-    {
-      tmp = (unsigned int)(CRC16 & 0x0001);
-      CRC16 >>= 1;
-      if (tmp == 1)
-      {
-          CRC16 ^= 0xA001;    //异或多项式
-      }
+        }
     }
-  }
-  return CRC16;
 }
+
+

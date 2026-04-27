@@ -72,6 +72,6 @@ void StartKeyTask(void *argument)
             // 无按键按下
         }
 
-		osDelay(100);
+		osDelay(1);
 	}
 }

@@ -42,16 +42,15 @@ extern uint16_t rxlen_u4;
 
 // 串口接收中断
 // #define EVENT_UART6_RX       (1UL << 0)     // 串口收中断事件
-#define EVENT_UART6_RX   (1 << 0)   // 0x01 (第 0 位)
-#define EVENT_UART3_RX   (1 << 1)   // 0x02 (第 1 位)
-#define EVENT_UART2_RX   (1 << 2)   // 0x04 (第 2 位)
-#define EVENT_UART4_RX   (1 << 3)   // 0x08 (第 3 位)
+#define EVENT_UART6_RX   (1 << 0)   // 0x01 (第 0 位)  主要控制
+#define EVENT_UART3_RX   (1 << 1)   // 0x02 (第 1 位)  控制驱动轮
+#define EVENT_UART2_RX   (1 << 2)   // 0x04 (第 2 位)  接收驱动轮指令
+#define EVENT_UART4_RX   (1 << 3)   // 0x08 (第 3 位)  控制驱动轮
 // 为了任务里等待方便，定义一个包含所有串口事件的掩码
 #define EVENT_ALL_UART_RX (EVENT_UART6_RX | EVENT_UART3_RX | EVENT_UART2_RX | EVENT_UART4_RX)
 
 
-//解码事件
-#define EVENT_BRAKE_UPDATE    0x01
+
 
 extern 	osEventFlagsId_t comEventHandle;  // 串口事件标志句柄
 
