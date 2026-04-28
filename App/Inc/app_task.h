@@ -29,12 +29,16 @@
 #define EVENT_BRAKE_UPDATE    0x01
 // 驱动轮力矩控制专用通知 (发给 torqueMoveTaskHandle)
 #define FLAG_TORQUE_READY       (1UL << 0)  // 0x01: 双侧力矩数据解析完成
+//UPS状态更新(发给 torqueMoveTaskHandle)
+#define FLAG_UPS_UPDATE         (1UL << 0)
+
+
 
 // 任务句柄
 // extern osThreadId_t comTaskHandle;
 extern osThreadId_t defaultTaskHandle;
 extern osThreadId_t torqueMoveTaskHandle;
-
+extern osThreadId_t upsTaskHandle;
 // 指示灯状态
 #define LED_ON           1    // 常亮
 #define LED_OFF          2    // 常灭
@@ -66,7 +70,7 @@ extern IWDG_HandleTypeDef hiwdg1;
 // extern osEventFlagsId_t comEventHandle;
 
 extern osEventFlagsId_t ArmBKEventHandle;
-
+ 
 
 // 指令
 #define CMD_TEST         0xA1

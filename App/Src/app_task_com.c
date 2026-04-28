@@ -178,6 +178,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 
             case 0x15: 
             {
+                
                 payload[0] = (adc_current_height >> 8) & 0xFF; 
                 payload[1] = adc_current_height & 0xFF; 
                 reg_len=2;       
@@ -401,7 +402,7 @@ void StartComTask(void *argument)
                 SysMsg.Torque[0] = parsed_torque[0];
                 SysMsg.Torque[1] = parsed_torque[1];
                 
-                // 扣动扳机，唤醒 ctrlTask 去计算速度和驱动电机！
+                // 扣动扳机，唤醒 ctrlTask 去计算速度和驱动电机
                 osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY); 
             } else {
                 // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行

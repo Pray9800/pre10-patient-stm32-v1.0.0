@@ -52,43 +52,57 @@
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for comTask */
 osThreadId_t comTaskHandle;
 const osThreadAttr_t comTask_attributes = {
   .name = "comTask",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for keyTask */
 osThreadId_t keyTaskHandle;
 const osThreadAttr_t keyTask_attributes = {
   .name = "keyTask",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityLow1,
 };
 /* Definitions for torqueMoveTask */
 osThreadId_t torqueMoveTaskHandle;
 const osThreadAttr_t torqueMoveTask_attributes = {
   .name = "torqueMoveTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for armTask */
 osThreadId_t armTaskHandle;
 const osThreadAttr_t armTask_attributes = {
   .name = "armTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for parkTask */
 osThreadId_t parkTaskHandle;
 const osThreadAttr_t parkTask_attributes = {
   .name = "parkTask",
   .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
+/* Definitions for upsTask */
+osThreadId_t upsTaskHandle;
+const osThreadAttr_t upsTask_attributes = {
+  .name = "upsTask",
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for breakTask */
+osThreadId_t breakTaskHandle;
+const osThreadAttr_t breakTask_attributes = {
+  .name = "breakTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal7,
 };
 /* Definitions for printfMutex */
 osMutexId_t printfMutexHandle;
@@ -118,10 +132,12 @@ const osEventFlagsAttr_t ArmBKEvent_attributes = {
 
 void StartDefaultTask(void *argument);
 void StartComTask(void *argument);
-extern void StartKeyTask(void *argument);
+void StartKeyTask(void *argument);
 void StartTorqueMove(void *argument);
 void StartArmTask(void *argument);
 void StartParkTask(void *argument);
+void StartUpsTask(void *argument);
+void StartBreakTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -190,6 +206,12 @@ void MX_FREERTOS_Init(void) {
   /* creation of parkTask */
   parkTaskHandle = osThreadNew(StartParkTask, NULL, &parkTask_attributes);
 
+  /* creation of upsTask */
+  upsTaskHandle = osThreadNew(StartUpsTask, NULL, &upsTask_attributes);
+
+  /* creation of breakTask */
+  breakTaskHandle = osThreadNew(StartBreakTask, NULL, &breakTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -245,6 +267,24 @@ __weak void StartComTask(void *argument)
   /* USER CODE END StartComTask */
 }
 
+/* USER CODE BEGIN Header_StartKeyTask */
+/**
+* @brief Function implementing the keyTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartKeyTask */
+__weak void StartKeyTask(void *argument)
+{
+  /* USER CODE BEGIN StartKeyTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartKeyTask */
+}
+
 /* USER CODE BEGIN Header_StartTorqueMove */
 /**
 * @brief Function implementing the torqueMoveTask thread.
@@ -297,6 +337,42 @@ __weak void StartParkTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartParkTask */
+}
+
+/* USER CODE BEGIN Header_StartUpsTask */
+/**
+* @brief Function implementing the upsTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartUpsTask */
+__weak void StartUpsTask(void *argument)
+{
+  /* USER CODE BEGIN StartUpsTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartUpsTask */
+}
+
+/* USER CODE BEGIN Header_StartBreakTask */
+/**
+* @brief Function implementing the breakTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBreakTask */
+__weak void StartBreakTask(void *argument)
+{
+  /* USER CODE BEGIN StartBreakTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartBreakTask */
 }
 
 /* Private application code --------------------------------------------------*/

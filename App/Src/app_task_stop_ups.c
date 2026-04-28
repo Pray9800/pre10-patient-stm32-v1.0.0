@@ -13,6 +13,30 @@
 #include "bsp_spi.h"
 #include "bsp_usart.h"
 
+void App_UPS_Update(void);
+
+
+
+
+
+void StartUpsTask(void *argument)
+{
+ 
+    App_UPS_Update();
+    for(;;)
+    {
+        // 死等唤醒信号：获得物理按键动作，或收到串口指令时 去执行
+        osThreadFlagsWait(FLAG_UPS_UPDATE, osFlagsWaitAny, osWaitForever);     
+        // 醒来后，去执行状态机
+        App_UPS_Update();
+    }
+
+}
+
+
+
+
+
 /*******************************************************
  Author: PAN       Version: V1.0       Date:2026/04/20
  Function:          UPS_Ctl
@@ -71,7 +95,7 @@ void App_UPS_Update(void)
         
         // // 
         // // 或者将其替换为一个标志位在主循环打印，防止卡死中断。
-        // App_Printf(">>> ALARM: E-STOP ACTIVE! UPS Force OFF! <<<\r\n");
+        App_Printf(">>> ALARM: E-STOP ACTIVE! UPS Force OFF! <<<\r\n");
     }
     else 
     {
@@ -108,31 +132,71 @@ void App_UPS_Update(void)
 *******************************************************/
 void App_UPS_Request(uint8_t req_state)
 {
-    // 门神拦截逻辑：先看急停脸色！
-    if (STOP_READ() == GPIO_PIN_SET) 
+    //赋值    
+    g_ups_state_ctrl = req_state;
+    //发送通知
+
+    if (upsTaskHandle != NULL) {
+            osThreadFlagsSet(upsTaskHandle, FLAG_UPS_UPDATE); 
+        }
+}
+
+
+
+
+
+
+
+
+//中断回调函数
+/*******************************************************
+ Author: PENG       Version: V1.0       Date:2026/03/26
+ Function:          HAL_GPIO_EXTI_Callback
+ Description:       外部中断回调函数  按键中断处理
+ Calls:             osEventFlagsSet
+ Called By:         HAL库
+ Input:             GPIO_Pin 中断引脚
+ Output:            无
+ Return:            无
+ Others:            无
+*******************************************************/
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    static uint32_t LastTime[8] = {0};  // 记录每个按键上次触发时间
+    uint32_t curTime = HAL_GetTick();
+    uint32_t diffTime;
+
+ 
+         if (GPIO_Pin == KEY3_Pin)
     {
-        // 急停按下状态显示还是00 物理按键优先  如果检测到急停按钮被按下，忽略软件指令
-        g_ups_state_ctrl = 0x00; 
-        App_Printf("Request REJECTED: STOP——BUTTON is active! Cannot turn on UPS.\r\n");
+        diffTime = curTime - LastTime[2];
+        if (diffTime >= KEY_TIME_MS) {
+            LastTime[2] = curTime;
+            if (keyEventHandle != NULL) {
+                osEventFlagsSet(keyEventHandle, K3_EVENT);
+            }
+        }   // 设置按键3事件标志
+    }
+    
+
+    else if (GPIO_Pin == STOP_Pin)
+    {
+        // 处理急停按钮STOP按键中断
+        if (upsTaskHandle != NULL) {
+            osThreadFlagsSet(upsTaskHandle, FLAG_UPS_UPDATE);
+        }
+    
     }
     else
     {
-        // 急停松开状态，允许修改全局变量
-        g_ups_state_ctrl = req_state;
+        // 其他中断引脚处理
     }
-    
-    // 状态更新完毕
-    App_UPS_Update();
 }
 
 
 
-// 重写 BSP 层的弱函数  不加 __weak
-void BSP_STOP_Btn_Callback(void)
-{
-    // 这里是 APP 层，直接调用你的业务逻辑
-    App_UPS_Update();
-}
+
+
 
 
 

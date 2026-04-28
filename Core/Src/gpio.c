@@ -52,15 +52,15 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, KEY2_Pin|CTL_BK_0_Pin|CTL_BK_1_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED0_Pin|CTL_M1_1_Pin|CTL_M2_0_Pin|CTL_M2_1_Pin
                           |CTL_M3_0_Pin|CTL_M3_1_Pin|UPDOWN_0_Pin|UPDOWN_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, FOOTP_0_Pin|FOOTP_1_Pin|FOOTP_2_Pin|FOOTP_3_Pin
                           |UPS_OFF_Pin|UPS_ON_Pin|CTL_M1_0_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, CTL_BK_0_Pin|CTL_BK_1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PS4_Pin PS3_Pin PS2_Pin */
   GPIO_InitStruct.Pin = PS4_Pin|PS3_Pin|PS2_Pin;
@@ -86,26 +86,17 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : KEY8_Pin KEY7_Pin KEY6_Pin KEY5_Pin
-                           KEY4_Pin KEY3_Pin */
-  GPIO_InitStruct.Pin = KEY8_Pin|KEY7_Pin|KEY6_Pin|KEY5_Pin
-                          |KEY4_Pin|KEY3_Pin;
+  /*Configure GPIO pin : KEY3_Pin */
+  GPIO_InitStruct.Pin = KEY3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  HAL_GPIO_Init(KEY3_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : KEY2_Pin */
-  GPIO_InitStruct.Pin = KEY2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(KEY2_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : KEY1_Pin */
-  GPIO_InitStruct.Pin = KEY1_Pin;
+  /*Configure GPIO pins : KEY2_Pin KEY1_Pin */
+  GPIO_InitStruct.Pin = KEY2_Pin|KEY1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(KEY1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED0_Pin */
   GPIO_InitStruct.Pin = LED0_Pin;
@@ -138,10 +129,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 

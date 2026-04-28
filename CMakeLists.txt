@@ -45,14 +45,16 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_default.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_com.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_key.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_stop_ups.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_torqueMove.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_arm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_armHeight.c
     ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_park.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/App/Src/app_task_break.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Bsp/Src/bsp_torque_com.c
