@@ -36,4 +36,5 @@ void StartBrakeTask(void *argument)
             last_brake_state = g_brake_state_ctrl; // 更新记录
         }
     }
+      
 }

@@ -12,5 +12,5 @@ typedef enum {
 // 发送和读取力矩传感器数据的函数声明
 void BSP_Torque_RequestData(TorqueReadMode_e mode);
 uint32_t* Torque_Parse(uint8_t *rxbuf, uint16_t rxlen);//注意返回的是地址
-uint8_t Torque_Parse_mode(uint8_t *rxbuf, uint16_t rxlen, uint32_t *torquetmp);//赋值模式
+uint8_t Torque_Parse_mode(uint8_t *rxbuf, uint16_t rxlen, int32_t *torquetmp);//赋值模式
 #endif // __BSP_TORQUE_H__

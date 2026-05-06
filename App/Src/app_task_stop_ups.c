@@ -30,6 +30,7 @@ void StartUpsTask(void *argument)
         // 醒来后，去执行状态机
         App_UPS_Update();
     }
+      
 
 }
 

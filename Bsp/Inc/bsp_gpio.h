@@ -27,7 +27,7 @@
 #define PS3_READ()          HAL_GPIO_ReadPin(PS3_GPIO_Port, PS3_Pin)
 #define PS4_READ()          HAL_GPIO_ReadPin(PS4_GPIO_Port, PS4_Pin)
 //暂定把PS4 替换老代码的KEY_PEAK引脚  GET_KEY_PARK采用原代码命名方式
-#define GET_KEY_PARK()           PS4_READ() 
+#define GET_KEY_PARK()           KEY5_READ()  
 
 
 
@@ -37,7 +37,7 @@
 #define KEY1_READ()          HAL_GPIO_ReadPin(KEY1_GPIO_Port, KEY1_Pin)
 #define KEY2_READ()          HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin)
 #define KEY3_READ()          HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin)
-#define KEY4_READ()          HAL_GPIO_ReadPin(KEY4_GPIO_Port, KEY4_Pin)
+#define KEY5_READ()          HAL_GPIO_ReadPin(KEY5_GPIO_Port, KEY5_Pin)
 #define KEY9_READ()          HAL_GPIO_ReadPin(KEY9_GPIO_Port, KEY9_Pin)
 #define KEY10_READ()         HAL_GPIO_ReadPin(KEY10_GPIO_Port, KEY10_Pin)
 #define KEY11_READ()         HAL_GPIO_ReadPin(KEY11_GPIO_Port, KEY11_Pin)
@@ -117,7 +117,7 @@
 
 
 // 台车移动使能信号  接收端
-#define Trolley_Move()          KEY9_READ()  //1：使能电机推动 0：关闭使能电机推动
+#define Trolley_Move()          KEY3_READ()  //1：使能电机推动 0：关闭使能电机推动
 
 //机械臂上下按钮信号 接收端
 #define ARM_UP_SIGN()            KEY1_READ()

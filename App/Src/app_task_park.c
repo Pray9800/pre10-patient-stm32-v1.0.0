@@ -33,10 +33,12 @@
 void FOOTP_Ctrl(uint8_t state)
 {
 
+
+
         // 判断驻车按键状态
         if (state == 0XFF) 
         {
-            // 按下：收回推杆
+            // 可以移动
             FOOTP_0_ON() ;
             FOOTP_1_ON() ;
             FOOTP_2_ON() ;
@@ -45,7 +47,7 @@ void FOOTP_Ctrl(uint8_t state)
         }
         else if(state == 0x00) 
         {
-            // 松开：顶起推杆
+            //停止移动
             FOOTP_0_OFF() ;
             FOOTP_1_OFF() ;
             FOOTP_2_OFF() ;
@@ -81,10 +83,16 @@ for(;;)
             // 按下：收回推杆
             BSP_ParkMotors_Retract();
         }
-        else 
+        else if(GET_KEY_PARK() == GPIO_PIN_RESET) 
         {
+            
             // 松开：顶起推杆
             BSP_ParkMotors_Extend();
+        }
+        else
+        {
+            // // 两个都没按停止
+            // BSP_ParkMotors_Stop();
         }
 
         osDelay(20); 

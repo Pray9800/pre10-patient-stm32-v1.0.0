@@ -37,6 +37,25 @@ uint16_t rxlen_u4 = 0;
 
 
 
+void BSP_UART_Start_Receive(void)
+{
+    // 1. 开启 USART6 的 DMA 空闲中断接收 (注意这里用 sizeof 更安全)
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, dma_rxbuf, sizeof(dma_rxbuf)); 
+    
+    // 2. 开启 USART3 (力矩传感器) 的 IT 空闲中断接收
+    HAL_UARTEx_ReceiveToIdle_IT(&huart3, rxbuf_u3, sizeof(rxbuf_u3)); 
+    
+    // 3. 开启 USART2 (驱动轮1) 的 IT 空闲中断接收
+    HAL_UARTEx_ReceiveToIdle_IT(&huart2, rxbuf_u2, sizeof(rxbuf_u2)); 
+    
+    // 4. 开启 UART4 (驱动轮2) 的 IT 空闲中断接收
+    HAL_UARTEx_ReceiveToIdle_IT(&huart4, rxbuf_u4, sizeof(rxbuf_u4)); 
+}
+
+
+
+
+
 /*******************************************************
  Author: PENG       Version: V1.0       Date:2025/06/26
  Function:          __io_putchar
@@ -126,7 +145,10 @@ void Usart6_Send_Data(uint8_t *data, uint32_t size)
     // HAL_UART_Transmit(&huart6, data, size, 0x200);
 }
 
-
+void Usart1_Send_Data(uint8_t *data, uint32_t size)
+{
+    HAL_UART_Transmit(&huart1, data, size, 0x200);
+}
 
 
 /*******************************************************
@@ -144,11 +166,15 @@ void Usart6_Send_Data(uint8_t *data, uint32_t size)
 
 void Torque_RS232_Send(uint8_t *data, uint32_t size)
 {
-   HAL_UART_Transmit(&huart3,data,size,1000);
+   HAL_UART_Transmit(&huart3,data,size,100);
 }
 
 
-
+HAL_StatusTypeDef Usart3_Send_Data(uint8_t *data, uint32_t size)
+{
+   
+    return HAL_UART_Transmit(&huart3, data, size, 0x200);
+}
 
 
 /*******************************************************
@@ -163,10 +189,10 @@ void Torque_RS232_Send(uint8_t *data, uint32_t size)
  Return:            无
  Others:            无
 *******************************************************/
-void Trolley_Drive_RS232_ComTX1(uint8_t *data, uint32_t size)
-{
-   HAL_UART_Transmit(&huart2,data,size,1000);
-}
+    void Trolley_Drive_RS232_ComTX1(uint8_t *data, uint32_t size)
+    {
+    HAL_UART_Transmit(&huart2,data,size,1000);
+    }
 
 
 /*******************************************************
@@ -217,7 +243,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
         rxlen_u3 = Size;
         osEventFlagsSet(comEventHandle, EVENT_UART3_RX);                 
-        // 重新布置捕鼠夹 (IT 中断模式！)，最大允许装 256
+        // 最大允许装128
         HAL_UARTEx_ReceiveToIdle_IT(&huart3, rxbuf_u3, sizeof(rxbuf_u3)); 
     }
     // ======== 串口 2 接收完成 (台车驱动轮RS232通讯发送口1) ========

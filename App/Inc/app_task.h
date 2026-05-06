@@ -53,7 +53,7 @@ extern osThreadId_t upsTaskHandle;
 
 // 定义系统状态结构体
 typedef struct {
-    uint32_t Torque[2];       // [0]:左力矩, [1]:右力矩 
+    int32_t Torque[2];       // [0]:右力矩, [1]:左力矩 
 // 暂时就应该 后续加
 } SystemMsg_t;
 
@@ -114,3 +114,6 @@ void App_UPS_Request(uint8_t req_state);
     升降电机           推杆方向          伺服启停
     ✅ 只本地          ✅ 只本地         ✅ 只本地
  */
+
+ //专门高度测试
+ 

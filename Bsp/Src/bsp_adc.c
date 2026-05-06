@@ -31,7 +31,7 @@ void BSP_ADC_Init(void)
 /*******************************************************
  Function:    BSP_ADC_GetArmHeight
  Description: 读取机械臂高度电位器的值
- Return:      0 ~ 65535 (因为你配置的是 16-bit 分辨率)
+ Return:      0 ~ 65535  
 *******************************************************/
 uint16_t BSP_ADC_GetArmHeight(void)
 {

@@ -19,6 +19,9 @@
 #include <string.h>
 #include "bsp_crc.h"
 #include "stdio.h"
+#include "stm32h7xx_hal_uart.h"
+#include "usart.h"
+#include "bsp_servomotor_com.h"
 // 解析后的数据结构体
 typedef struct{
     uint8_t    cmd;    // 命令
@@ -117,7 +120,7 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
     }
     else 
     {
-        return 3;  // 不支持的功能码
+        return 4;  // 不支持的功能码
         //0
     }
 
@@ -144,7 +147,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 
 
     // ---------------------------------------------------------
-    // 0x06 写指令：极速回弹原始数据
+    // 0x06 写指令：马上返回原始
     // ---------------------------------------------------------
     if (cmd == 0x06)
     {
@@ -159,7 +162,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
     {
         uint8_t payload[16] = {0};   // 临时数据载体 读的数据
 
-        // 根据数组里的寄存器地址，直接走业务逻辑
+        // 根据数组里的寄存器地址
         switch (reg_addr)
         {
             case 0x11: payload[0] = g_ups_state_ctrl;  reg_len=1; break; // UPS
@@ -188,7 +191,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
         }
 
         // ---------------------------------------------------------
-        // 协议打包层：利用你之前制定的查字典函数
+        // 协议打包层 
         // ---------------------------------------------------------
         uint8_t txbuf[32] = {0};
         uint16_t tx_len = 0;
@@ -213,9 +216,9 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
         crc = CRC16_Modbus(txbuf, tx_len);
         txbuf[tx_len++] = crc & 0xFF;
         txbuf[tx_len++] = (crc >> 8) & 0xFF;
-        Usart6_Send_Data(txbuf, tx_len);
+        Usart6_Send_Data(txbuf, tx_len);      
         App_Printf("ComTask: Received length: %d\r\n", rxlen);
-        for (int i = 0; i < tx_len; i++) {
+        for (int i = 3; i < tx_len-2; i++) {
             App_Printf("%02X ", txbuf[i]);
         }
     }
@@ -321,122 +324,227 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 #if 0
 void StartComTask(void *argument)
 {
-            //uint8_t  rxbuf[256] = {0x0A,0X03,0X11,0X01,0X6C,0X3E};      // 待解析的数据包
-            uint8_t  rxbuf[256] = {0x0A,0X03,0X12,0X04,0XFE,0X9F};   
-            
-            rxlen=6; // 模拟接收到的数据长度
-            rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
+             BSP_UART_Start_Receive();
+    // 伺服电机初始化
+            BSP_ServoMotor_Init();
+// 伺服电机启动 (使能)
+            BSP_ServoMotor_Start();
+           uint8_t speed_cmd[] = {0x06, 0x01, 0x11, 0x18};  //100pms
+           uint8_t speed_cmd_rev[] = {0x06, 0xFE, 0xEF, 0xF3}; 
+            //{0x06, 0x00, 0x89, 0x8F} 
+            Trolley_Drive_RS232_ComTX1(speed_cmd,4);
+            Trolley_Drive_RS232_ComTX2(speed_cmd,4);
+
+            // osDelay
+            // speed_cmd[] = {0x06, 0x00, 0x89, 0x8F};
+            // Trolley_Drive_RS232_ComTX1(speed_cmd,4);
+            // Trolley_Drive_RS232_ComTX2(speed_cmd,4);
+
+ 
+            // speed_cmd[] = {0x06, 0x00, 0x1B, 0x22};
+            // Trolley_Drive_RS232_ComTX1(speed_cmd,4);
+            // Trolley_Drive_RS232_ComTX2(speed_cmd,4);
+
+
+
+
+    uint32_t flags;
+         //用于存放力矩解析结果的局部变量
+    int32_t parsed_torque[2] = {0};
+    uint8_t  torque_count = 0;
+             uint16_t current_len_u3 ;
+  for(;;){
+
+            // Trolley_Drive_RS232_ComTX1(speed_cmd,4);
+            // Trolley_Drive_RS232_ComTX2(speed_cmd_rev,4);
+            // osDelay(5000);
+            // Trolley_Drive_RS232_ComTX1(speed_cmd_rev,4);
+            // Trolley_Drive_RS232_ComTX2(speed_cmd_rev,4);
+                 //  uint8_t  rxbuf[256] ;
+                // osDelay(200);
+           // //uint8_t  rxbuf[256] = {0x0A,0X03,0X11,0X01,0X6C,0X3E};      // 待解析的数据包
+            uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //高度测试 
+            // // uint8_t mode=0XFF;
+            // // uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //M1-3测试 
+
+             rxlen=6; // 模拟接收到的数据长度
+             rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
             
             // 解析接收到的数据包
             if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
                 Protocol_Cmd_Dispatch(&rxdata); //分发指令
                 Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
+               
             } else {
+                App_Printf("Return %d\r\n",RxData_Parse(rxbuf, rxlen, &rxdata));
                 App_Printf("ComTask: RxData_Parse Error\r\n");
                 App_Printf("ComTask: Received length: %d\r\n", rxlen);
                 for (int i = 0; i < rxlen; i++) {
                     App_Printf("%02X ", rxbuf[i]);
                 }
 
-            }           
-}
-#endif
+            } 
+           #if 0
 
-void StartComTask(void *argument)
-{
-    uint32_t flags;
-    uint8_t  rxbuf[256] = {0};      // 待解析的数据包
-    // uint8_t  rx[10] = {0};          // 接收数据包内容
-    // uint8_t  tx[4] = {0};           // 发送数据包内容
-    rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
-    // txdata_t txdata ;	    // 待发送的数据包
-    //用于存放力矩解析结果的局部变量
-    uint32_t parsed_torque[2] = {0};
-    uint8_t  torque_count = 0;
-
-    // 开启底层接收
-    // BSP_UART_Start_Receive();  暂时没写
-
-    for(;;)
-    {
-        // 阻塞等待 4 个串口的任意数据到来
-        flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
-
-        //  开始分发数据
-        if (flags & EVENT_UART6_RX) {             
-            // 提取接收到的数据包
-            // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
-            memcpy(rxbuf, dma_rxbuf, rxlen); 
-            App_Printf("ComTask: Received length: %d\r\n", rxlen);
-            for (int i = 0; i < rxlen; i++) {
+    
+            BSP_Torque_RequestData(TORQUE_MODE_DOUBLE); // 请求双AD数据
+            flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
+              if (flags & EVENT_UART3_RX) {            // 力矩传感器数据解析
+                osEventFlagsClear(comEventHandle, EVENT_UART3_RX);//先清除
+                if (rxlen_u3 > 0) {
+                current_len_u3 =rxlen_u3;
+                 rxlen_u3 = 0; 
+                 memcpy(rxbuf, rxbuf_u3, current_len_u3);
+                 torque_count = Torque_Parse_mode(rxbuf, current_len_u3, parsed_torque);
+            //解析
+                  if (torque_count == 2) {
+                //将干净的数据存入全局情报站
+                SysMsg.Torque[0] = parsed_torque[0];
+                SysMsg.Torque[1] = parsed_torque[1];
+                App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]);    
+             }
+                }
+        
+            //打印读取到数据
+            App_Printf("ComTask UART3.1: Received length: %d\r\n", current_len_u3);
+            for (int i = 0; i < current_len_u3; i++) {
                 App_Printf("%02X ", rxbuf[i]);
             }
             App_Printf("\r\n");
+            memset(rxbuf, 0, sizeof(rxbuf)); // 清零接收缓冲区
+        }
+            #endif
+     
+
+            //  }    
+            osDelay(100);  
+            }
+
+}
+
+#endif
+
+
+
+
+
+#if 1
+    void StartComTask(void *argument)
+    {
+        uint32_t flags;
+        uint8_t  rxbuf[256] = {0};      // 待解析的数据包
+        // uint8_t  rx[10] = {0};          // 接收数据包内容
+        // uint8_t  tx[4] = {0};           // 发送数据包内容
+        rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
+        // txdata_t txdata ;	    // 待发送的数据包
+        //用于存放力矩解析结果的局部变量
+        int32_t  parsed_torque[2] = {0};
+        uint8_t  torque_count = 0;
+        uint16_t current_len_u3 ;
+        // 开启底层接收
+        // BSP_UART_Start_Receive();  暂时没写
+       BSP_UART_Start_Receive();
+        for(;;)
+        {
             
 
+            #if 1
+            uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //高度测试 
+            // // uint8_t mode=0XFF;
+            // // uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //M1-3测试 
+
+             rxlen=6; // 模拟接收到的数据长度
+             rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
+            
             // 解析接收到的数据包
             if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
                 Protocol_Cmd_Dispatch(&rxdata); //分发指令
                 Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
+               
             } else {
+                App_Printf("Return %d\r\n",RxData_Parse(rxbuf, rxlen, &rxdata));
                 App_Printf("ComTask: RxData_Parse Error\r\n");
+                App_Printf("ComTask: Received length: %d\r\n", rxlen);
+                for (int i = 0; i < rxlen; i++) {
+                    App_Printf("%02X ", rxbuf[i]);
+                }
+
+            } 
+            #endif
+            
+            // 阻塞等待 4 个串口的任意数据到来
+            flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
+
+           //  开始分发数据
+            if (flags & EVENT_UART6_RX) {             
+                // 提取接收到的数据包
+                // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
+                memcpy(rxbuf, dma_rxbuf, rxlen); 
+                App_Printf("ComTask: Received length: %d\r\n", rxlen);
+                for (int i = 0; i < rxlen; i++) {
+                    App_Printf("%02X ", rxbuf[i]);
+                }
+                App_Printf("\r\n");
+                
+
+                // 解析接收到的数据包
+                if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
+                    Protocol_Cmd_Dispatch(&rxdata); //分发指令
+                    Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
+                } else {
+                    App_Printf("ComTask: RxData_Parse Error\r\n");
+                }
             }
-        }
-        
-        if (flags & EVENT_UART3_RX) {
-            // 力矩传感器数据解析
-            memcpy(rxbuf, rxbuf_u3, rxlen_u3);
-            torque_count = Torque_Parse_mode(rxbuf, rxlen_u3, parsed_torque);
-
-            //打印读取到数据
-            App_Printf("ComTask: Received length: %d\r\n", rxlen);
-            for (int i = 0; i < rxlen; i++) {
-                App_Printf("%02X ", rxbuf[i]);
-            }
-            App_Printf("\r\n");
-
-
-            // 解析出2个力矩值，才去唤醒大脑
-            if (torque_count == 2) {
-                // A. 将干净的数据存入全局情报站
+            
+            if (flags & EVENT_UART3_RX) {
+                // 力矩传感器数据解析
+               osEventFlagsClear(comEventHandle, EVENT_UART3_RX);//先清除
+                if (rxlen_u3 > 0) {
+                current_len_u3 =rxlen_u3;
+                 rxlen_u3 = 0; 
+                 memcpy(rxbuf, rxbuf_u3, current_len_u3);
+                 torque_count = Torque_Parse_mode(rxbuf, current_len_u3, parsed_torque);
+            //解析
+                  if (torque_count == 2) {
+                //将干净的数据存入全局情报站
                 SysMsg.Torque[0] = parsed_torque[0];
                 SysMsg.Torque[1] = parsed_torque[1];
-                
-                // 扣动扳机，唤醒 ctrlTask 去计算速度和驱动电机
-                osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY); 
+                App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]);    
+                osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY);  //释放通知
             } else {
-                // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行
-                App_Printf("ComTask(U3): Torque Parse Failed or Not Double Mode!\r\n");
+                    // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行
+                    App_Printf("ComTask(U3): Torque Parse Failed or Not Double Mode!\r\n");
+                }              
+                }
+             memset(rxbuf, 0, sizeof(rxbuf)); // 清零接收缓冲区   
             }
 
-
+            if (flags & EVENT_UART2_RX) {
+                // 驱动轮1号反馈来了，扔给驱动解析器
+                memcpy(rxbuf, rxbuf_u2, rxlen_u2);
+                        //打印读取到数据
+                // App_Printf("ComTaskU2: Received length: %d\r\n", rxlen_u2);
+                // for (int i = 0; i < rxlen_u2; i++) {
+                //     App_Printf("%02X ", rxbuf[i]);
+                // }
+                // App_Printf("\r\n");
+            }
             
-        }
-
-        if (flags & EVENT_UART2_RX) {
-            // 驱动轮1号反馈来了，扔给驱动解析器
-            memcpy(rxbuf, rxbuf_u2, rxlen_u2);
-            // DriveWheel_Parse_Process(1, rxbuf, rxlen_u2);
-                      //打印读取到数据
-            App_Printf("ComTask: Received length: %d\r\n", rxlen_u2);
-            for (int i = 0; i < rxlen_u2; i++) {
-                App_Printf("%02X ", rxbuf[i]);
+            if (flags & EVENT_UART4_RX) {
+                // 驱动轮2号反馈来了
+                memcpy(rxbuf, rxbuf_u4, rxlen_u4);
+                // App_Printf("ComTaskU4: Received length: %d\r\n", rxlen_u4);
+                // for (int i = 0; i < rxlen_u4; i++) {
+                // App_Printf("%02X ", rxbuf[i]);
+                // }
+                // App_Printf("\r\n");
+                
             }
-            App_Printf("\r\n");
-        }
-        
-        if (flags & EVENT_UART4_RX) {
-            // 驱动轮2号反馈来了
-            memcpy(rxbuf, rxbuf_u4, rxlen_u4);
-            // DriveWheel_Parse_Process(2, rxbuf, rxlen_u4);
-            App_Printf("ComTask: Received length: %d\r\n", rxlen_u4);
-            for (int i = 0; i < rxlen_u4; i++) {
-            App_Printf("%02X ", rxbuf[i]);
-            }
-            App_Printf("\r\n");
-            
+            // osDelay(10); 
+           
         }
     }
-}
+
+#endif
 
 
