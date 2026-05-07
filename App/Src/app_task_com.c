@@ -49,7 +49,7 @@ typedef struct{
 
 uint8_t volatile g_brake_state_ctrl = 0;
 uint8_t volatile g_park_state_ctrl = 0;
-uint8_t volatile g_ups_state_ctrl = 0;
+uint8_t volatile g_ups_state_ctrl = 0xFF; //保证初始化的时候UPS有电
 uint8_t volatile light_reg[4]={0x00,0x00,0x00,0x00}; //灯带状态寄存器数据区
 uint16_t volatile adc_current_height = 0;  //机械臂高度
 
@@ -251,7 +251,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
                 {
                 case 0x11: // UPS通断
                         uint8_t target_ups = p_rxdata->data[0];
-                        App_UPS_Request(target_ups); //g_ups_state_ctrl在后续赋值
+                        App_UPS_Request(target_ups); //g_ups_state_ctrl在这个函数里面赋值
                         App_Printf("g_ups_state_ctrl update to %d\r\n", g_ups_state_ctrl);
                         break;  
                     case 0x14: // 抱闸
@@ -448,13 +448,10 @@ void StartComTask(void *argument)
         {
             
 
-            #if 1
+            #if 0
             uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //高度测试 
-            // // uint8_t mode=0XFF;
-            // // uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //M1-3测试 
-
-             rxlen=6; // 模拟接收到的数据长度
-             rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
+            rxlen=6; // 模拟接收到的数据长度
+            
             
             // 解析接收到的数据包
             if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
@@ -471,7 +468,7 @@ void StartComTask(void *argument)
 
             } 
             #endif
-            
+
             // 阻塞等待 4 个串口的任意数据到来
             flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
 
@@ -479,6 +476,7 @@ void StartComTask(void *argument)
             if (flags & EVENT_UART6_RX) {             
                 // 提取接收到的数据包
                 // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
+                
                 memcpy(rxbuf, dma_rxbuf, rxlen); 
                 App_Printf("ComTask: Received length: %d\r\n", rxlen);
                 for (int i = 0; i < rxlen; i++) {

@@ -16,7 +16,7 @@
 #include "bsp_usart.h"
 #include "bsp_servomotor_com.h"
 #include "bsp_torque_com.h"
-
+#include "usart.h"
 
 
 
@@ -31,7 +31,7 @@ void StartTorqueMove(void *argument)
   uint8_t ch1_cmd[8] = {0x01, 0x05, 0x00, 0x64, 0xFF, 0X00,0xCD, 0xE5};
   uint8_t ch2_cmd[8] = {0x01, 0x05, 0x00, 0x65, 0xFF, 0X00,0x9C, 0x25};  
 
-Torque_RS232_Send(ch1_cmd, 8);
+    Torque_RS232_Send(ch1_cmd, 8);
     osDelay(10); // 留出发送时间
     Torque_RS232_Send(ch2_cmd, 8);
     osDelay(10); // 等待传感器清零生效
@@ -44,9 +44,11 @@ Torque_RS232_Send(ch1_cmd, 8);
 
     for(;;)
     {
-       if (Trolley_Move() == 1) // 台车使能按钮按下
-        // if (1) // 台车使能按钮按下
+
+          if (Trolley_Move() == 1) // 台车使能按钮按下
+      //   if (1) // 台车使能按钮按下
         { 
+
            osThreadFlagsClear(FLAG_TORQUE_READY);
            BSP_Torque_RequestData(TORQUE_MODE_DOUBLE); // 请求双力矩AD数据
            if (!servo_is_enabled) {
@@ -74,9 +76,7 @@ Torque_RS232_Send(ch1_cmd, 8);
                 
                 // -- 右轮限幅 --
                 if (speed_r > MAX_RPM)       speed_r = MAX_RPM;
-                else if (speed_r < -MAX_RPM
-                
-                ) speed_r = -MAX_RPM;               
+                else if (speed_r < -MAX_RPM) speed_r = -MAX_RPM;               
                 // 调用底层发送指令 把右轮的倒转拨正
                 speed_r_send=speed_r*-1; 
                 BSP_ServoMotor_SetSpeed(speed_l, speed_r_send);

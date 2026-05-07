@@ -19,7 +19,7 @@
 void StartBrakeTask(void *argument)
 {
 
-    uint8_t last_brake_state = 0xFF; 
+    uint8_t last_brake_state = 0x00;  // 初始化时，抱闸电机关闭
     
     // 初始化抱闸
     BSP_Brake_Control(last_brake_state);

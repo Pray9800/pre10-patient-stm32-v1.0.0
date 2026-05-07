@@ -35,7 +35,7 @@ void FOOTP_Ctrl(uint8_t state)
 
 
 
-        // 判断驻车按键状态
+        // U6的指令0x13
         if (state == 0XFF) 
         {
             // 可以移动

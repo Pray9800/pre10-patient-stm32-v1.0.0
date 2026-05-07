@@ -92,9 +92,7 @@ void App_UPS_Update(void)
 
         // 物理按键优先 物理急停拦截模式 如果检测到急停按钮被按下，忽略软件指令
         UPS_Ctl(UPS_OFF);         // 动作：强制切断 UPS 物理供电！
-        g_ups_state_ctrl = 0x00;  // 抹杀：清零软件意图，防止急停旋开时意外暴冲！
-        
-        // // 
+        g_ups_state_ctrl = 0x00;  // 清除标志位 用于U6的读取
         // // 或者将其替换为一个标志位在主循环打印，防止卡死中断。
         App_Printf(">>> ALARM: E-STOP ACTIVE! UPS Force OFF! <<<\r\n");
     }
@@ -102,7 +100,7 @@ void App_UPS_Update(void)
     {
 
         // 软件指令放行模式
-        // 只有在急停按钮“安全松开”的前提下，才允许听从上位机的软件指令
+        // 只有在急停按钮“安全松开”的前提下 才去U6的指令
         if (g_ups_state_ctrl == 0xFF) 
         {
             UPS_Ctl(UPS_ON);
@@ -133,7 +131,7 @@ void App_UPS_Update(void)
 *******************************************************/
 void App_UPS_Request(uint8_t req_state)
 {
-    //赋值    
+    //赋值  来自U6的指令 
     g_ups_state_ctrl = req_state;
     //发送通知
 
@@ -168,19 +166,19 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     uint32_t diffTime;
 
  
-         if (GPIO_Pin == KEY3_Pin)
-    {
-        diffTime = curTime - LastTime[2];
-        if (diffTime >= KEY_TIME_MS) {
-            LastTime[2] = curTime;
-            if (keyEventHandle != NULL) {
-                osEventFlagsSet(keyEventHandle, K3_EVENT);
-            }
-        }   // 设置按键3事件标志
-    }
+    //      if (GPIO_Pin == KEY3_Pin)
+    // {
+    //     diffTime = curTime - LastTime[2];
+    //     if (diffTime >= KEY_TIME_MS) {
+    //         LastTime[2] = curTime;
+    //         if (keyEventHandle != NULL) {
+    //             osEventFlagsSet(keyEventHandle, K3_EVENT);
+    //         }
+    //     }   // 设置按键3事件标志
+    // }
     
 
-    else if (GPIO_Pin == STOP_Pin)
+      if (GPIO_Pin == STOP_Pin)
     {
         // 处理急停按钮STOP按键中断
         if (upsTaskHandle != NULL) {
