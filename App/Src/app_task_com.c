@@ -89,13 +89,13 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
     uint16_t calc_crc = CRC16_Modbus(rxbuf, rxlen - 2);
     uint16_t rx_crc = rxbuf[rxlen - 2] | (rxbuf[rxlen - 1] << 8);
 
-    App_Printf("calc_crc is 0x%04X\r\n", calc_crc);
-    App_Printf("rx_crc is 0x%04X\r\n", rx_crc);
     
 
     if (calc_crc != rx_crc) 
     {
         
+        App_Printf("calc_crc is 0x%04X\r\n", calc_crc);
+        App_Printf("rx_crc is 0x%04X\r\n", rx_crc);
         App_Printf("ComTask: CRC Check ok and data definitely wrong\r\n");
         return 2;   // CRC校验失败
        
@@ -108,14 +108,12 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
 
     rxdata->cmd = rxbuf[1]; 
     rxdata->reg_addr = rxbuf[2]; 
-    App_Printf("ComTask: CRC Check ok and data savesuccessfully: cmd=0x%02X, reg_addr=0x%02X\r\n", rxdata->cmd, rxdata->reg_addr);
-
     // 绑定数据指针 (不管是 03 还是 06，后续数据区都从索引 3 开始)
     if (rxdata->cmd == 0x03 || rxdata->cmd == 0x06) 
     {
        
         rxdata->data = &rxbuf[3];
-        App_Printf("ComTask:  data save successfully\r\n");
+          App_Printf("ComTask: CRC Check ok and data savesuccessfully: cmd=0x%02X, reg_addr=0x%02X\r\n", rxdata->cmd, rxdata->reg_addr);
    
     }
     else 
@@ -147,7 +145,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 
 
     // ---------------------------------------------------------
-    // 0x06 写指令：马上返回原始
+    // 0x06 写指令：马上返回原始数据
     // ---------------------------------------------------------
     if (cmd == 0x06)
     {
@@ -216,11 +214,13 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
         crc = CRC16_Modbus(txbuf, tx_len);
         txbuf[tx_len++] = crc & 0xFF;
         txbuf[tx_len++] = (crc >> 8) & 0xFF;
-        Usart6_Send_Data(txbuf, tx_len);      
-        App_Printf("ComTask: Received length: %d\r\n", rxlen);
+        Usart6_Send_Data(txbuf, tx_len);  
+
+        App_Printf("ARM_Height : ");
         for (int i = 3; i < tx_len-2; i++) {
             App_Printf("%02X ", txbuf[i]);
         }
+        App_Printf("\r\n");
     }
 }
 
@@ -476,21 +476,20 @@ void StartComTask(void *argument)
             if (flags & EVENT_UART6_RX) {             
                 // 提取接收到的数据包
                 // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
-                
-                memcpy(rxbuf, dma_rxbuf, rxlen); 
-                App_Printf("ComTask: Received length: %d\r\n", rxlen);
-                for (int i = 0; i < rxlen; i++) {
-                    App_Printf("%02X ", rxbuf[i]);
-                }
-                App_Printf("\r\n");
-                
 
+                memcpy(rxbuf, dma_rxbuf, rxlen); 
                 // 解析接收到的数据包
                 if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
                     Protocol_Cmd_Dispatch(&rxdata); //分发指令
                     Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
                 } else {
                     App_Printf("ComTask: RxData_Parse Error\r\n");
+                    //解析失败才去反馈收到了啥
+                    App_Printf("ComTask: Received length: %d\r\n", rxlen);
+                for (int i = 0; i < rxlen; i++) {
+                    App_Printf("%02X ", rxbuf[i]);
+                }
+                App_Printf("\r\n");
                 }
             }
             

@@ -40,7 +40,7 @@ uint16_t rxlen_u4 = 0;
 void BSP_UART_Start_Receive(void)
 {
     // 1. 开启 USART6 的 DMA 空闲中断接收 (注意这里用 sizeof 更安全)
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart6, dma_rxbuf, sizeof(dma_rxbuf)); 
+    HAL_UARTEx_ReceiveToIdle_IT(&huart6, dma_rxbuf, sizeof(dma_rxbuf)); 
     
     // 2. 开启 USART3 (力矩传感器) 的 IT 空闲中断接收
     HAL_UARTEx_ReceiveToIdle_IT(&huart3, rxbuf_u3, sizeof(rxbuf_u3)); 
@@ -127,23 +127,36 @@ void App_Printf(const char *fmt, ...)
     osMutexRelease(printfMutexHandle);
 }
 
+
+
+
+
+
+static uint8_t u6_tx_buffer[64];
 /*******************************************************
- Author: PENG       Version: V1.0       Date:2026/03/26
+ Author: PAN        Version: V1.0       Date:2026/05/07
  Function:          Usart6_Send_Data
- Description:       串口6发送
- Calls:             HAL_UART_Transmit_DMA
- Called By:         应用层
- Input:             data 待发送的数据帧/数组
-                    size 长度
- Output:            无
- Return:            无
- Others:            无
+ Description:       串口6 中断非阻塞发送（考虑到U6包含功能比较多开启中断U234不属于高频暂未开启）
 *******************************************************/
 void Usart6_Send_Data(uint8_t *data, uint32_t size)
 {
-    HAL_UART_Transmit_DMA(&huart6, data, size);
-    // HAL_UART_Transmit(&huart6, data, size, 0x200);
+    // 长度保护防止溢出
+    if (size > sizeof(u6_tx_buffer)) {
+        size = sizeof(u6_tx_buffer); 
+    }
+
+    uint32_t timeout = 0;
+    while (huart6.gState != HAL_UART_STATE_READY && timeout < 0xFFFFF) {
+        timeout++; 
+    }
+
+    // 数据拷贝
+    memcpy(u6_tx_buffer, data, size);
+
+    HAL_UART_Transmit_IT(&huart6, u6_tx_buffer, size);
 }
+
+
 
 void Usart1_Send_Data(uint8_t *data, uint32_t size)
 {
@@ -231,12 +244,13 @@ void Trolley_Drive_RS232_ComTX2(uint8_t *data, uint32_t size)
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     
-    if (comEventHandle == NULL) return; 
+  //  if (comEventHandle == NULL) return; 
     if (huart->Instance == USART6) // 串口6接收完成
     {
         rxlen = Size;
         osEventFlagsSet(comEventHandle, EVENT_UART6_RX);
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart6, dma_rxbuf, 1024); // 重新开启DMA接收
+        //HAL_UARTEx_ReceiveToIdle_DMA(&huart6, dma_rxbuf, 1024); // 重新开启DMA接收
+        HAL_UARTEx_ReceiveToIdle_IT(&huart6, dma_rxbuf, sizeof(dma_rxbuf));
     }
 // ========  串口 3 接收完成 (力矩传感器) ========
     else if (huart->Instance == USART3) 
