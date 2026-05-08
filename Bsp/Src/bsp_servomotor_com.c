@@ -68,7 +68,6 @@ void BSP_ServoMotor_SetSpeed(int speed_l, int speed_r)
     uint16_t hex_speed_l = (uint16_t)speed_l_tmp;
     uint16_t hex_speed_r = (uint16_t)speed_r_tmp;
 
-    osDelay(2);
 
     // -------- 组装并发送左轮数据 --------
     speedbuf[0] = 0x06;
