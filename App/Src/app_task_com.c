@@ -52,7 +52,8 @@ uint8_t volatile g_park_state_ctrl = 0;
 uint8_t volatile g_ups_state_ctrl = 0xFF; //保证初始化的时候UPS有电
 uint8_t volatile light_reg[4]={0x00,0x00,0x00,0x00}; //灯带状态寄存器数据区
 uint16_t volatile adc_current_height = 0;  //机械臂高度
-
+uint16_t volatile adc_targart_height = 0;  //机械臂高度设定高度U6传输
+uint8_t  volatile  height_auto_mode=0  ; 
 SystemMsg_t SysMsg = {0};
 
 
@@ -191,7 +192,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
         uint8_t txbuf[32] = {0};
         uint16_t tx_len = 0;
         uint16_t crc = 0;
-
+        
         if (reg_len == 0) return; 
 
         // 装填头部
@@ -284,6 +285,16 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
                                led_num, led_r, led_g, led_b);
                     
                         break;
+
+
+
+                    case 0x15: // 高度控制改变变量 后续由TASK自行解决
+
+                    adc_targart_height = (p_rxdata->data[0] << 8) | p_rxdata->data[1];  
+                    height_auto_mode=1; //标志位                 
+                    App_Printf("adc_adc_targart_height update to %d\r\n", g_park_state_ctrl);
+                    break;   
+
                 }
                 break; 
 

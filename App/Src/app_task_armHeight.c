@@ -16,39 +16,72 @@
 #include "bsp_adc.h"
 #include "bsp_usart.h"
 
+#define ARM_DEADZONE  1000  //  ADC 分辨率调整，相当于0.05V 65536/1000*3.3
+#define ARM_MIN_HEIGHT  0x4100 //最高
+#define ARM_MAX_HEIGHT  0xC000 //最低
 
-
-void StartArmTask(void *argument)
-{
-    for(;;)
+    void StartArmTask(void *argument)
     {
-        
-        uint8_t last_key = 0;
-        uint8_t valid_key = 0;
-        // 1. 获取高度 (ADC拉绳传感器实时读取)
-        adc_current_height = BSP_ADC_GetArmHeight();
-       
-        // 2. 升降电机控制
-        if (ARM_UP_SIGN() == 1) 
+        for(;;)
         {
             
-            MOTOR_ARM_UP();
-        } 
-        else if (ARM_DOWN_SIGN() == 1) 
-        {
-            MOTOR_ARM_DOWN();
-        } 
-        else 
-        {
-            // 两个都没按停止
-            MOTOR_ARM_STOP();
+            uint8_t last_key = 0;
+            uint8_t valid_key = 0;
+            // 1. 获取高度 (ADC拉绳传感器实时读取)
+            adc_current_height = BSP_ADC_GetArmHeight();
+            
+            // 2. 升降电机控制
+            if ((ARM_UP_SIGN() == 1)) 
+            {
+                height_auto_mode = 0;
+                MOTOR_ARM_UP();
+            } 
+            else if ((ARM_DOWN_SIGN() == 1)) 
+            {
+                MOTOR_ARM_DOWN();
+                height_auto_mode = 0;
+            } 
+            else if (height_auto_mode == 1)
+            {
+                
+                if (adc_targart_height < ARM_MIN_HEIGHT || adc_targart_height > ARM_MAX_HEIGHT)  //预设值超标直接退出
+            {
+                MOTOR_ARM_STOP();
+                height_auto_mode = 0;
+                App_Printf("Error: out of range");
+            }
+            else
+            {
+                // 两个都没按停止
+              int32_t error = (int32_t)adc_targart_height - (int32_t)adc_current_height;
+            if (error > ARM_DEADZONE)      // 目标在上方，且超过死区
+                {
+                    MOTOR_ARM_UP();
+                }
+                else if (error < -ARM_DEADZONE) // 目标在下方，且超过死区
+                {
+                    MOTOR_ARM_DOWN();
+                }
+                else                           // 进入死区，说明已经到达
+                {
+                    MOTOR_ARM_STOP();
+                    height_auto_mode = 0;       // 到达后可以选是否关闭自动模式
+                }
+                
+            }
+                
+
+            }
+
+            else{
+                    MOTOR_ARM_STOP();
+                }
+
+            //  (50Hz) 
+            osDelay(20);  //提供最快刷新频率
         }
-
-        //  (50Hz) 
-        osDelay(20);  //提供最快刷新频率
     }
-}
-
+    
 
 
 
