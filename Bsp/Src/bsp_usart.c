@@ -204,7 +204,8 @@ HAL_StatusTypeDef Usart3_Send_Data(uint8_t *data, uint32_t size)
 *******************************************************/
     void Trolley_Drive_RS232_ComTX1(uint8_t *data, uint32_t size)
     {
-    HAL_UART_Transmit(&huart2,data,size,1000);
+       // HAL_UART_Transmit_IT(&huart2,data,size);
+       HAL_UART_Transmit(&huart2,data,size,10);
     }
 
 
@@ -222,7 +223,8 @@ HAL_StatusTypeDef Usart3_Send_Data(uint8_t *data, uint32_t size)
 *******************************************************/
 void Trolley_Drive_RS232_ComTX2(uint8_t *data, uint32_t size)
 {
-   HAL_UART_Transmit(&huart4,data,size,1000);
+   // HAL_UART_Transmit_IT(&huart4,data,size);
+   HAL_UART_Transmit(&huart4,data,size,10);
 }
 
 

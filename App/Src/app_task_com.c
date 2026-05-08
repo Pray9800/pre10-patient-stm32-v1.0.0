@@ -128,9 +128,6 @@ uint8_t RxData_Parse(uint8_t *rxbuf, uint16_t rxlen, rxdata_t *rxdata)
 
 
 
-
-
-
 // ==========================================
 // 应答函数和业务分发函数分开写，逻辑更清晰
 // ==========================================
@@ -433,8 +430,6 @@ void StartComTask(void *argument)
     {
         uint32_t flags;
         uint8_t  rxbuf[256] = {0};      // 待解析的数据包
-        // uint8_t  rx[10] = {0};          // 接收数据包内容
-        // uint8_t  tx[4] = {0};           // 发送数据包内容
         rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
         // txdata_t txdata ;	    // 待发送的数据包
         //用于存放力矩解析结果的局部变量
@@ -442,32 +437,10 @@ void StartComTask(void *argument)
         uint8_t  torque_count = 0;
         uint16_t current_len_u3 ;
         // 开启底层接收
-        // BSP_UART_Start_Receive();  暂时没写
        BSP_UART_Start_Receive();
         for(;;)
         {
             
-
-            #if 0
-            uint8_t  rxbuf[256] = {0x0A,0X03,0X15,0X02,0X7C,0XAD};  //高度测试 
-            rxlen=6; // 模拟接收到的数据长度
-            
-            
-            // 解析接收到的数据包
-            if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
-                Protocol_Cmd_Dispatch(&rxdata); //分发指令
-                Command_Process(rxbuf, rxlen); // 处理完毕 发送回去指令
-               
-            } else {
-                App_Printf("Return %d\r\n",RxData_Parse(rxbuf, rxlen, &rxdata));
-                App_Printf("ComTask: RxData_Parse Error\r\n");
-                App_Printf("ComTask: Received length: %d\r\n", rxlen);
-                for (int i = 0; i < rxlen; i++) {
-                    App_Printf("%02X ", rxbuf[i]);
-                }
-
-            } 
-            #endif
 
             // 阻塞等待 4 个串口的任意数据到来
             flags = osEventFlagsWait(comEventHandle, EVENT_ALL_UART_RX, osFlagsWaitAny, osWaitForever);
