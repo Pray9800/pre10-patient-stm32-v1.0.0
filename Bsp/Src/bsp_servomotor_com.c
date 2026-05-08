@@ -27,7 +27,7 @@
 void BSP_ServoMotor_Init(void)
 {
     uint8_t speedmodebuf[4] = {0x02, 0x00, 0xc4, 0xc6}; // 选择速度模式
-    uint8_t speedtimebuf[4] = {0x0a, 0x0A, 0x0A, 0x1E}; // 电机加减速时间
+    uint8_t speedtimebuf[4] = {0x0a, 0x03, 0x03, 0x10}; // 电机加减速时间 0到3000用时400ms
     uint8_t motostart[4]    = {0x00, 0x00, 0x01, 0x01}; // 启动电机
 
     // 1. 设置速度模式

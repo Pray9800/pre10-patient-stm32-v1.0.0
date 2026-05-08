@@ -77,7 +77,7 @@ void StartParkTask(void *argument)
 {
 for(;;)
     {
-        // 判断驻车按键状态
+        // 判断推杆按键状态
         if (GET_KEY_PARK() == GPIO_PIN_SET) 
         {
             // 按下：收回推杆
