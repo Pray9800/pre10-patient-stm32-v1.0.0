@@ -395,7 +395,7 @@ void StartTorqueMove(void *argument)
                 memset(filter_l_buf, 0, sizeof(filter_l_buf));
                 memset(filter_r_buf, 0, sizeof(filter_r_buf));
                 // 连续发 10 次 0 速指令 (共 200ms)保证不丢包
-                for(int i = 0; i < 1; i++) {
+                for(int i = 0; i < 10; i++) {
                     BSP_ServoMotor_SetSpeed(0, 0);
                     osDelay(20); 
                 }
@@ -404,12 +404,12 @@ void StartTorqueMove(void *argument)
                 //  (底层会发出 00 00 00 00)
                 BSP_ServoMotor_Stop();
                 uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAll, 30);
-                // 只要不是超时报错 (说明至少收到了一个轮子的ACK，或者全收到)
+                // 至少收到了一个轮子的ACK，或者全收到)
                 if (ack_flags != osFlagsErrorTimeout) {
-                    App_Printf("Motor Disabled! ACK OK!\r\n");
+                    App_Printf("Motor Disabled! ACK OK!  servo_is_enabled is %d\r\n",servo_is_enabled );
                 } else {
                     // 两个轮子都丢包了
-                    App_Printf("Motor Disabled! ACK Timeout!\r\n");
+                    App_Printf("Motor Disabled! ACK Timeout!  servo_is_enabled is %d \r\n",servo_is_enabled);
                 }
                 servo_is_enabled = 0;
                         
