@@ -91,7 +91,7 @@ void App_UPS_Update(void)
     {
 
         // 物理按键优先 物理急停拦截模式 如果检测到急停按钮被按下，忽略软件指令
-        UPS_Ctl(UPS_OFF);         // 动作：强制切断 UPS 物理供电！
+        UPS_Ctl(UPS_OFF);         //  强制切断 UPS 
         g_ups_state_ctrl = 0x00;  // 清除标志位 用于U6的读取
         // // 或者将其替换为一个标志位在主循环打印，防止卡死中断。
         App_Printf(">>> ALARM: E-STOP ACTIVE! UPS Force OFF! <<<\r\n");

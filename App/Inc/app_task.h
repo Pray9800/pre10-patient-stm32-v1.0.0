@@ -29,6 +29,10 @@
 #define EVENT_BRAKE_UPDATE    0x01
 // 驱动轮力矩控制专用通知 (发给 torqueMoveTaskHandle)
 #define FLAG_TORQUE_READY       (1UL << 0)  // 0x01: 双侧力矩数据解析完成
+#define FLAG_U2_ACK_READY       (1UL << 1)  // 0x02: 驱动轮1 (左轮) 指令应答完成
+#define FLAG_U4_ACK_READY       (1UL << 2)  // 0x04: 驱动轮2 (右轮) 指令应答完成
+
+
 //UPS状态更新(发给 torqueMoveTaskHandle)
 #define FLAG_UPS_UPDATE         (1UL << 0)
 

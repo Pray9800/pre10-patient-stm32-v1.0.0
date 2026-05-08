@@ -51,7 +51,7 @@ void ws2812_set_num(uint16_t led_num, uint8_t r, uint8_t g, uint8_t b)
         w2812_fill_buffer(&W2812Buffer[i * RGB_BIT], r, g, b);
     }
     
-    // 2. 调用带有 D-Cache 清洗机制的高级 DMA 发送接口！
+    // 2. 调用带有 D-Cache 清洗机制的高级 DMA 发送接口 
     SPI2_Send_Data(W2812Buffer, led_num * RGB_BIT); 
 }
 

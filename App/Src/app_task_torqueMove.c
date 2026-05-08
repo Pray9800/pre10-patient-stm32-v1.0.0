@@ -282,10 +282,10 @@
 #define KP_TURN        6     // 转向敏感度（略小于直行，防止转弯太猛）
 
 #define DEADZONE_FWD   10    // 直行死区：双手平均推力超过这个值才走
-#define DEADZONE_TURN  20    // 转向死区 (防蛇行神器！)：左右手受力差值小于20时，强行锁死直线行驶！
+#define DEADZONE_TURN  22    // 转向死区 左右手受力差值小于20时，直线行驶
 
 #define MAX_RPM        500   // 极限速度
-#define MAX_STEP       20    // 斜坡加速度，决定起步是否丝滑
+#define MAX_STEP       15    // 斜坡加速度，决定起步是否丝滑
 #define FILTER_NUM     5     // 滤波深度
 
 void StartTorqueMove(void *argument)
@@ -306,7 +306,8 @@ void StartTorqueMove(void *argument)
     uint8_t filter_idx = 0;
     
     uint32_t tick_start; // 用于精准控制 20ms 循环
-
+    
+    
     for(;;)
     {
         // 记录循环开始的精确时间
@@ -314,17 +315,19 @@ void StartTorqueMove(void *argument)
 
         if (Trolley_Move() == 1) // 台车使能按钮按下
         { 
+            osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY);
             osThreadFlagsClear(FLAG_TORQUE_READY);
             BSP_Torque_RequestData(TORQUE_MODE_DOUBLE); 
 
             if (!servo_is_enabled) {
                 BSP_ServoMotor_Start();
+                //BSP_ServoMotor_Init();
                 current_l = 0; current_r = 0; 
                 servo_is_enabled = 1;
+                App_Printf("START \r\n");
             }
-       
-            // 最多等待 20ms，防止卡死
-            if (osThreadFlagsWait(FLAG_TORQUE_READY, osFlagsWaitAny, 20) == FLAG_TORQUE_READY)
+            uint32_t wait_flags = osThreadFlagsWait(FLAG_TORQUE_READY, osFlagsWaitAny, 20);
+            if ((wait_flags & FLAG_TORQUE_READY) == FLAG_TORQUE_READY)
             {
                 // 1. 滑动平均滤波
                 filter_r_buf[filter_idx] = SysMsg.Torque[0];
@@ -371,33 +374,73 @@ void StartTorqueMove(void *argument)
                 if (target_r - current_r > MAX_STEP)       current_r += MAX_STEP;
                 else if (target_r - current_r < -MAX_STEP) current_r -= MAX_STEP;
                 else                                       current_r = target_r;
-
+                //  App_Printf("current_l is %ld  ,current_r is :%ld \n\r ",current_l,current_r );
                 // 最终输出 (右轮镜像取反)
                 BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
             }
+            else  //假如力矩没有传输了 也先暂停  也可以改成原速度推进 
+            {  
+                current_l = 0; current_r = 0;
+                BSP_ServoMotor_SetSpeed(0, 0);
+             }
         }
         else // 使能按钮松开
         {
+            if (servo_is_enabled) {
+                 
+
+                // 刹车/清空状态
+                current_l = 0; 
+                current_r = 0;
+                memset(filter_l_buf, 0, sizeof(filter_l_buf));
+                memset(filter_r_buf, 0, sizeof(filter_r_buf));
+                // 连续发 10 次 0 速指令 (共 200ms)保证不丢包
+                for(int i = 0; i < 1; i++) {
+                    BSP_ServoMotor_SetSpeed(0, 0);
+                    osDelay(20); 
+                }
+
+                osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY);
+                //  (底层会发出 00 00 00 00)
+                BSP_ServoMotor_Stop();
+                uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAll, 30);
+                // 只要不是超时报错 (说明至少收到了一个轮子的ACK，或者全收到)
+                if (ack_flags != osFlagsErrorTimeout) {
+                    App_Printf("Motor Disabled! ACK OK!\r\n");
+                } else {
+                    // 两个轮子都丢包了
+                    App_Printf("Motor Disabled! ACK Timeout!\r\n");
+                }
+                servo_is_enabled = 0;
+                        
+            }   
+                osThreadFlagsClear(FLAG_TORQUE_READY); 
+            #if 0
             static uint8_t brake_retry = 0; // 刹车重试计数器
 
                 if (servo_is_enabled) {
                     // 第一次松手，初始化计数器
-                    brake_retry = 5; 
+                    brake_retry = 10; 
                     servo_is_enabled = 0;
                 }
+
                 if (brake_retry > 0) {
                     // 只有计数器大于 0 时才发指令
                     BSP_ServoMotor_SetSpeed(0, 0);
-                    brake_retry--;                    
+                    brake_retry--;
+                    
+
                     if (brake_retry == 0) {
                         BSP_ServoMotor_Stop(); 
                     }
                 }
+
                 // 重置软件斜坡和滤波
                 current_l = 0; current_r = 0;
                 memset(filter_l_buf, 0, sizeof(filter_l_buf));
                 memset(filter_r_buf, 0, sizeof(filter_r_buf));
                 osThreadFlagsClear(FLAG_TORQUE_READY);
+                #endif
         }
 
 

@@ -490,8 +490,12 @@ void StartComTask(void *argument)
             }
 
             if (flags & EVENT_UART2_RX) {
-                // 驱动轮1号反馈来了，扔给驱动解析器
+                // 驱动轮1号反馈 
                 memcpy(rxbuf, rxbuf_u2, rxlen_u2);
+                // 校验：提取前两个字节，判断是否是速度应答或停机应答
+            if (rxlen_u2 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00)) {
+            osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U2_ACK_READY);
+    }
                         //打印读取到数据
                 // App_Printf("ComTaskU2: Received length: %d\r\n", rxlen_u2);
                 // for (int i = 0; i < rxlen_u2; i++) {
@@ -501,8 +505,11 @@ void StartComTask(void *argument)
             }
             
             if (flags & EVENT_UART4_RX) {
-                // 驱动轮2号反馈来了
+                // 驱动轮2号反馈 
                 memcpy(rxbuf, rxbuf_u4, rxlen_u4);
+            if (rxlen_u4 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00)) {
+                    osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U4_ACK_READY);
+                }
                 // App_Printf("ComTaskU4: Received length: %d\r\n", rxlen_u4);
                 // for (int i = 0; i < rxlen_u4; i++) {
                 // App_Printf("%02X ", rxbuf[i]);
