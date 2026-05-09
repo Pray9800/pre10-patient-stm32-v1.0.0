@@ -10,7 +10,7 @@
 #ifndef __APP_TASK_H_
 #define __APP_TASK_H_
 
-#include "main.h"
+    #include "main.h"
 #include "cmsis_os.h"
 #include "cmsis_os2.h"
 
@@ -89,6 +89,7 @@ extern volatile uint8_t light_reg[4]; //灯带状态寄存器数据区
 extern volatile uint16_t adc_current_height; 
 extern volatile uint16_t  adc_targart_height  ; 
 extern volatile uint8_t height_auto_mode  ; // 高度自动模式标志位
+extern volatile uint8_t    height_update_down; //升降指令
 void FOOTP_Ctrl(uint8_t state);
 void App_UPS_Request(uint8_t req_state);
 #endif /* __APP_TASK_H_ */

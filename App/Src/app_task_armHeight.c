@@ -43,39 +43,51 @@
             } 
             else if (height_auto_mode == 1)
             {
+                    
+                    if (adc_targart_height < ARM_MIN_HEIGHT || adc_targart_height > ARM_MAX_HEIGHT || height_update_down==0)  //预设值超标直接退出 或者有网口升降停止指令
+                {
+                    MOTOR_ARM_STOP();
+                    height_auto_mode = 0;
+                    App_Printf("Error: out of range"); 
+                }
                 
-                if (adc_targart_height < ARM_MIN_HEIGHT || adc_targart_height > ARM_MAX_HEIGHT)  //预设值超标直接退出
-            {
+                else //误差范围内 或者有上升下降的网口指令
+                {
+                    // 两个都没按停止
+                    int32_t error = (int32_t)adc_targart_height - (int32_t)adc_current_height; //还有插值
+                    
+                    if (height_update_down==2 && ARM_MIN_HEIGHT<adc_current_height &&ARM_MAX_HEIGHT>adc_current_height) //实际高度不能超过阈值
+                    {
+                        MOTOR_ARM_DOWN();
+                    }
+                    else if (height_update_down==1 && ARM_MIN_HEIGHT<adc_current_height &&ARM_MAX_HEIGHT>adc_current_height) //实际高度不能超过阈值
+                    {
+                        MOTOR_ARM_UP();
+                    }
+                    
+                    else if (error > ARM_DEADZONE )      // 目标在上方，且超过允许误差
+                    {
+                        MOTOR_ARM_UP();
+                    }
+                    else if (error < -ARM_DEADZONE) // 目标在下方，且超允许误差
+                    {
+                        MOTOR_ARM_DOWN();
+                    }
+                    else                           // 进入允许误差，说明已经到达
+                    {
+                        MOTOR_ARM_STOP();
+                        height_auto_mode = 0;       // 到达后可关闭
+                        height_update_down=2; //把指令也变成2
+                    }
+                    
+                }
+                
+
+            }
+
+        else{
                 MOTOR_ARM_STOP();
-                height_auto_mode = 0;
-                App_Printf("Error: out of range");
             }
-            else
-            {
-                // 两个都没按停止
-              int32_t error = (int32_t)adc_targart_height - (int32_t)adc_current_height;
-            if (error > ARM_DEADZONE)      // 目标在上方，且超过死区
-                {
-                    MOTOR_ARM_UP();
-                }
-                else if (error < -ARM_DEADZONE) // 目标在下方，且超过死区
-                {
-                    MOTOR_ARM_DOWN();
-                }
-                else                           // 进入死区，说明已经到达
-                {
-                    MOTOR_ARM_STOP();
-                    height_auto_mode = 0;       // 到达后可以选是否关闭自动模式
-                }
-                
-            }
-                
-
-            }
-
-            else{
-                    MOTOR_ARM_STOP();
-                }
 
             //  (50Hz) 
             osDelay(20);  //提供最快刷新频率

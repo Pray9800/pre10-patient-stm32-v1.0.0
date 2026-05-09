@@ -23,7 +23,7 @@
 
 
 #define KP_FORWARD     8     // 直行敏感度（越大推得越轻松）
-#define KP_TURN        6     // 转向敏感度（略小于直行，防止转弯太猛）
+#define KP_TURN        4     // 转向敏感度（略小于直行，防止转弯太猛）
 #define KP_SPEED       5     //力矩限速
 #define DEADZONE_FWD   10    // 直行死区：双手平均推力超过这个值才走
 #define DEADZONE_TURN  22    // 转向死区 左右手受力差值小于20时，直线行驶

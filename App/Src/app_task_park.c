@@ -22,7 +22,7 @@
 /*******************************************************
  Author: PAN       Version: V1.0       Date:2026/04/26
  Function:          FOOTP_Ctrl
- Description:       控制驻车状态（UART6控制）
+ Description:       控制驻车状态（UART6控制）只有指令时候控制
  Calls:             HAL_GPIO_WritePin
  Called By:         应用层
  Input:             state FOOTP状态设定
@@ -30,7 +30,7 @@
  Return:            无
  Others:            无
 *******************************************************/
-void FOOTP_Ctrl(uint8_t state)
+void FOOTP_Ctrl(uint8_t state)  
 {
 
 
@@ -38,20 +38,21 @@ void FOOTP_Ctrl(uint8_t state)
         // U6的指令0x13
         if (state == 0XFF) 
         {
-            // 可以移动
-            FOOTP_0_ON() ;
-            FOOTP_1_ON() ;
-            FOOTP_2_ON() ;
-            FOOTP_3_ON() ;
-
+            // // 可以移动
+            // FOOTP_0_ON() ;
+            // FOOTP_1_ON() ;
+            // FOOTP_2_ON() ;
+            // FOOTP_3_ON() ;
+            //  BSP_ParkMotors_Extend();//顶起推杆 就是驻车
         }
         else if(state == 0x00) 
         {
             //停止移动
-            FOOTP_0_OFF() ;
-            FOOTP_1_OFF() ;
-            FOOTP_2_OFF() ;
-            FOOTP_3_OFF() ;
+            // FOOTP_0_OFF() ;
+            // FOOTP_1_OFF() ;
+            // FOOTP_2_OFF() ;
+            // FOOTP_3_OFF() ;
+            // BSP_ParkMotors_Retract(); //回收推杆 就是不驻车 
         }
 
   
@@ -73,21 +74,28 @@ void FOOTP_Ctrl(uint8_t state)
  Return:            无
  Others:            无
 *******************************************************/
+uint8_t park_update;
 void StartParkTask(void *argument)
 {
 for(;;)
     {
+
+        
         // 判断推杆按键状态
         if (GET_KEY_PARK() == GPIO_PIN_SET) 
         {
             // 按下：收回推杆
             BSP_ParkMotors_Retract();
+            g_park_state_ctrl=0x00; 
+
         }
         else if(GET_KEY_PARK() == GPIO_PIN_RESET) 
         {
             
             // 松开：顶起推杆
             BSP_ParkMotors_Extend();
+            g_park_state_ctrl=0xFF; 
+
         }
         else
         {
@@ -95,7 +103,7 @@ for(;;)
             // BSP_ParkMotors_Stop();
         }
 
-        osDelay(20); 
+        osDelay(100); 
     }
     
 }
