@@ -26,7 +26,7 @@ void StartBrakeTask(void *argument)
 
     for(;;)
     {
-        // 阻塞等待UART6传来的信号
+        // 阻塞等待UART6传来的信号  暂时没启用 后续预计换成任务通知
         osEventFlagsWait(ArmBKEventHandle, EVENT_BRAKE_UPDATE, osFlagsWaitAny, osWaitForever);
 
         // 被唤醒后执行动作

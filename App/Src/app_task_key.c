@@ -11,21 +11,12 @@
 #include "bsp_usart.h"
 
 
+
 /*******************************************************
- Author: PENG       Version: V1.0       Date:2026/03/26
+ Author: PAN       Version: V2.0       Date:2026/6/3
  Function:          StartKeyTask
- Description:       按键任务
- Calls:
- Called By:
- Input:
- Output:
- Return:
- Others:
-*******************************************************/
-/*******************************************************
- Author: PENG       Version: V2.0       Date:2026/03/26
- Function:          StartKeyTask
- Description:       按键任务 (状态机防抖 + 边沿触发)
+ Description:       按键任务 (状态机防抖 + 边沿触发) 
+                    主要用于U1传输调试时候知道已经按下与其他任务不冲突后续将注释
 *******************************************************/
 void StartKeyTask(void *argument)
 {

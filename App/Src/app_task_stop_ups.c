@@ -182,7 +182,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
         // 处理急停按钮STOP按键中断
         if (upsTaskHandle != NULL) {
-            osThreadFlagsSet(upsTaskHandle, FLAG_UPS_UPDATE);
+            osThreadFlagsSet(upsTaskHandle, FLAG_UPS_UPDATE);  //暂时没做响应
         }
     
     }

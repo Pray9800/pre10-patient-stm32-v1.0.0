@@ -315,7 +315,7 @@ void StartTorqueMove(void *argument)
         // 记录循环开始的精确时间
         tick_start = osKernelGetTickCount(); 
 
-        if (Trolley_Move() == 1) // 台车使能按钮按下
+        if (Trolley_Move() == 1) // 台车使能按钮按下 key3
         { 
             osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY);
             osThreadFlagsClear(FLAG_TORQUE_READY);

@@ -297,7 +297,7 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
                     adc_targart_height = (p_rxdata->data[0] << 8) | p_rxdata->data[1];  
                     height_update_down =0xFF; // 清零升降指令，暂停升降指令 使用高度控制
                     height_auto_mode=1; //标志位                 
-                    App_Printf("adc_adc_targart_height update to %d\r\n", g_park_state_ctrl);
+                    App_Printf("adc_adc_targart_height update to %d\r\n", adc_targart_height);
                     break;   
 
 

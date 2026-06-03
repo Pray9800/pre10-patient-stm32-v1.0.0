@@ -119,12 +119,12 @@ void StartArmTask(void *argument)
         adc_current_height = BSP_ADC_GetArmHeight();
         
         // ==================== 1. 物理按键优先控制 ====================
-        if (ARM_UP_SIGN() == 1) 
+        if (ARM_UP_SIGN() == 1)    //KEY1
         {
             height_auto_mode = 0;   // 退出上位机
             MOTOR_ARM_UP();
         } 
-        else if (ARM_DOWN_SIGN() == 1) 
+        else if (ARM_DOWN_SIGN() == 1)  //KEY2
         {
             height_auto_mode = 0;   // 退出上位机
             MOTOR_ARM_DOWN();

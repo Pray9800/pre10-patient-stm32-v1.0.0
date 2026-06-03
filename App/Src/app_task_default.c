@@ -106,7 +106,7 @@ void Led_Ctl(uint8_t state)
 /*******************************************************
  Author: PENG       Version: V1.0       Date:2026/01/21
  Function:          StartDefaultTask
- Description:       默认任务
+ Description:       默认任务 LED灯按着500ms闪烁 其他功能后续添加
  Calls:
  Called By:
  Input:

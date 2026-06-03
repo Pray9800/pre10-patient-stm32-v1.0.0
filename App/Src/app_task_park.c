@@ -74,39 +74,38 @@ void FOOTP_Ctrl(uint8_t state)
  Return:            无
  Others:            无
 *******************************************************/
-uint8_t park_update;
+ 
 void StartParkTask(void *argument)
 {
-for(;;)
-    {
 
+ 
+    for(;;)
+        {       
+            // 判断推杆按键状态
+            if (GET_KEY_PARK() == GPIO_PIN_SET) 
+            {
+                // 按下：收回推杆
+                BSP_ParkMotors_Retract();
+                g_park_state_ctrl=0x00;   //全局变量提供U6读取台车升起还是降落
+            }
+            else if(GET_KEY_PARK() == GPIO_PIN_RESET) 
+            {           
+                // 松开：顶起推杆
+                BSP_ParkMotors_Extend();
+                g_park_state_ctrl=0xFF; 
+            }
+            else
+            {
+                // BSP_ParkMotors_Stop();
+            }
+
+            osDelay(100); 
+        }
         
-        // 判断推杆按键状态
-        if (GET_KEY_PARK() == GPIO_PIN_SET) 
-        {
-            // 按下：收回推杆
-            BSP_ParkMotors_Retract();
-            g_park_state_ctrl=0x00; 
-
-        }
-        else if(GET_KEY_PARK() == GPIO_PIN_RESET) 
-        {
-            
-            // 松开：顶起推杆
-            BSP_ParkMotors_Extend();
-            g_park_state_ctrl=0xFF; 
-
-        }
-        else
-        {
-            // // 两个都没按停止
-            // BSP_ParkMotors_Stop();
-        }
-
-        osDelay(100); 
-    }
-    
 }
+
+
+
 
 #if 0 // 设为 1 即可开启编译
 void PSWITCHDetect()
