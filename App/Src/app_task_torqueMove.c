@@ -292,7 +292,7 @@ void StartTorqueMove(void *argument)
 
 void StartTorqueMove(void *argument)
 {
-    // --- 传感器清零 ---
+    // --- 传感器清零 --- 双通道清零 发送两次 
     uint8_t ch1_cmd[8] = {0x01, 0x05, 0x00, 0x64, 0xFF, 0x00, 0xCD, 0xE5};
     uint8_t ch2_cmd[8] = {0x01, 0x05, 0x00, 0x65, 0xFF, 0x00, 0x9C, 0x25};  
     Torque_RS232_Send(ch1_cmd, 8);
