@@ -53,8 +53,8 @@ uint8_t volatile g_ups_state_ctrl = 0xFF; //保证初始化的时候UPS有电
 uint8_t volatile light_reg[4]={0x00,0x00,0x00,0x00}; //灯带状态寄存器数据区
 uint16_t volatile adc_current_height = 0;  //机械臂高度
 uint16_t volatile adc_targart_height = 0;  //机械臂高度设定高度U6传输
-uint8_t  volatile  height_auto_mode=0  ; 
-uint8_t  volatile  height_update_down=0 ;  //1上升 2 下降 0停止
+uint8_t  volatile  height_auto_mode=0  ;  //上位机控制高度标志位 0：本地按键控制 1：上位机控制
+uint8_t  volatile  height_update_down=0Xff ;  //1上升 2 下降 0停止 初始化没有指令 依赖上位机发送
 SystemMsg_t SysMsg = {0};
 
 
@@ -260,7 +260,8 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
                         g_brake_state_ctrl = p_rxdata->data[0]; 
                         App_Printf("g_brake_state_ctrl update to %d\r\n", g_brake_state_ctrl);
                         osEventFlagsSet(ArmBKEventHandle, EVENT_BRAKE_UPDATE);
-                        break;                  
+                        break;     
+                                     
                     // case 0x13: // 驻车   不用写了只读取就好了
                     //     g_park_state_ctrl = p_rxdata->data[0]; 
                     //     FOOTP_Ctrl(g_park_state_ctrl);
@@ -292,18 +293,18 @@ void Command_Process(uint8_t *rxbuf, uint16_t rxlen)
 
 
 
-                    case 0x15: // 高度控制改变变量 后续由TASK自行解决
-
+                    case 0x15: //给高度数值 高度控制改变变量 后续由TASK自行解决 
                     adc_targart_height = (p_rxdata->data[0] << 8) | p_rxdata->data[1];  
+                    height_update_down =0xFF; // 清零升降指令，暂停升降指令 使用高度控制
                     height_auto_mode=1; //标志位                 
                     App_Printf("adc_adc_targart_height update to %d\r\n", g_park_state_ctrl);
                     break;   
 
 
-                    case 0x16: //按键控制升降
-                     height_auto_mode=1; //标志位  
-                     height_update_down=p_rxdata->data[0];//升降信号
-                    App_Printf("adc_adc_targart_height update to %d\r\n", g_park_state_ctrl);
+                    case 0x16: //给升降信号按键控制升降
+                    height_update_down=p_rxdata->data[0];//升降信号
+                    height_auto_mode=1; //标志位 
+                    App_Printf("height_update_down update to %d\r\n", height_update_down);
                     break;  
 
                 }
