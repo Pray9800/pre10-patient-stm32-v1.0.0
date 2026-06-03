@@ -468,8 +468,9 @@ void StartComTask(void *argument)
             if (flags & EVENT_UART6_RX) {             
                 // 提取接收到的数据包
                 // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
-
+                HAL_NVIC_DisableIRQ(USART6_IRQn); //防止数据被覆盖
                 memcpy(rxbuf, dma_rxbuf, rxlen); 
+                HAL_NVIC_DisableIRQ(USART6_IRQn); 
                 // 解析接收到的数据包
                 if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
                     Protocol_Cmd_Dispatch(&rxdata); //分发指令
