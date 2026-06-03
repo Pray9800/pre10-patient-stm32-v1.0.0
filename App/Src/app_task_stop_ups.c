@@ -161,9 +161,9 @@ void App_UPS_Request(uint8_t req_state)
 *******************************************************/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    static uint32_t LastTime[8] = {0};  // 记录每个按键上次触发时间
-    uint32_t curTime = HAL_GetTick();
-    uint32_t diffTime;
+    // static uint32_t LastTime[8] = {0};  // 记录每个按键上次触发时间
+    // uint32_t curTime = HAL_GetTick();
+    // uint32_t diffTime;
 
  
     //      if (GPIO_Pin == KEY3_Pin)

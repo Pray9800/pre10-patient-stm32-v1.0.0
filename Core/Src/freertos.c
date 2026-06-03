@@ -52,7 +52,7 @@
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 512 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for comTask */
@@ -66,14 +66,14 @@ const osThreadAttr_t comTask_attributes = {
 osThreadId_t keyTaskHandle;
 const osThreadAttr_t keyTask_attributes = {
   .name = "keyTask",
-  .stack_size = 512 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow1,
 };
 /* Definitions for torqueMoveTask */
 osThreadId_t torqueMoveTaskHandle;
 const osThreadAttr_t torqueMoveTask_attributes = {
   .name = "torqueMoveTask",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for armTask */

@@ -27,6 +27,7 @@
 
 //抱闸解码事件
 #define EVENT_BRAKE_UPDATE    0x01
+
 // 驱动轮力矩控制专用通知 (发给 torqueMoveTaskHandle)
 #define FLAG_TORQUE_READY       (1UL << 0)  // 0x01: 双侧力矩数据解析完成
 #define FLAG_U2_ACK_READY       (1UL << 1)  // 0x02: 驱动轮1 (左轮) 指令应答完成
@@ -40,9 +41,11 @@
 
 // 任务句柄
 // extern osThreadId_t comTaskHandle;
-extern osThreadId_t defaultTaskHandle;
-extern osThreadId_t torqueMoveTaskHandle;
-extern osThreadId_t upsTaskHandle;
+extern osThreadId_t defaultTaskHandle;  //默认任务句柄
+extern osThreadId_t torqueMoveTaskHandle; //力矩控制移动句柄
+extern osThreadId_t upsTaskHandle;    //UPS供电控制句柄
+
+
 // 指示灯状态
 #define LED_ON           1    // 常亮
 #define LED_OFF          2    // 常灭
@@ -55,7 +58,7 @@ extern osThreadId_t upsTaskHandle;
 
 
 
-// 定义系统状态结构体
+// 定义系统状态结构体 暂时只有力矩数据直接 预备用于模式
 typedef struct {
     int32_t Torque[2];       // [0]:右力矩, [1]:左力矩 
 // 暂时就应该 后续加
@@ -73,11 +76,9 @@ extern IWDG_HandleTypeDef hiwdg1;
 
 // extern osEventFlagsId_t comEventHandle;
 
-extern osEventFlagsId_t ArmBKEventHandle;
+extern osEventFlagsId_t ArmBKEventHandle; //抱闸事件标志
  
 
-// 指令
-#define CMD_TEST         0xA1
 
 
 
@@ -90,6 +91,7 @@ extern volatile uint16_t adc_current_height;
 extern volatile uint16_t  adc_targart_height  ; 
 extern volatile uint8_t height_auto_mode  ; // 高度自动模式标志位
 extern volatile uint8_t    height_update_down; //升降指令
+
 void FOOTP_Ctrl(uint8_t state);
 void App_UPS_Request(uint8_t req_state);
 #endif /* __APP_TASK_H_ */

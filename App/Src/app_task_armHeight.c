@@ -25,8 +25,8 @@
         for(;;)
         {
             
-            uint8_t last_key = 0;
-            uint8_t valid_key = 0;
+            // uint8_t last_key = 0;
+            // uint8_t valid_key = 0;
             // 1. 获取高度 (ADC拉绳传感器实时读取)
             adc_current_height = BSP_ADC_GetArmHeight();
             
