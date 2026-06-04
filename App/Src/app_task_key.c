@@ -15,8 +15,8 @@
 /*******************************************************
  Author: PAN       Version: V2.0       Date:2026/6/3
  Function:          StartKeyTask
- Description:       按键任务 (状态机防抖 + 边沿触发) 
-                    主要用于U1传输调试时候知道已经按下与其他任务不冲突后续将注释
+ Description:       按键任务调试使用检查按键是否按下 特意不消抖
+                    
 *******************************************************/
 void StartKeyTask(void *argument)
 {
@@ -25,8 +25,8 @@ void StartKeyTask(void *argument)
     // 防抖计数器
     static uint8_t key_cnt[6] = {0};   
     
-    //  40ms 确认
-    const uint8_t DEBOUNCE_TICKS = 2;  
+    //  10ms 确认
+    const uint8_t DEBOUNCE_TICKS = 1;  
 
     osDelay(3000);    // 等待其他任务初始化完成
 
@@ -103,6 +103,6 @@ void StartKeyTask(void *argument)
         // ==========================================
         // 核心轮询节拍 (取代之前的 osEventFlagsWait)
         // ==========================================
-        osDelay(20); // 每 20ms 扫描一次按键，这是最佳的按键防抖基准心跳
+        osDelay(10); // 每 20ms 扫描一次按键，这是最佳的按键防抖基准心跳
     }
 }

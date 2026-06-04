@@ -470,7 +470,7 @@ void StartComTask(void *argument)
                 // 注意：原代码 memcpy(&rxbuf, &dma_rxbuf) 语法上略有瑕疵，
                 HAL_NVIC_DisableIRQ(USART6_IRQn); //防止数据被覆盖
                 memcpy(rxbuf, dma_rxbuf, rxlen); 
-                HAL_NVIC_DisableIRQ(USART6_IRQn); 
+                HAL_NVIC_EnableIRQ(USART6_IRQn); 
                 // 解析接收到的数据包
                 if (RxData_Parse(rxbuf, rxlen, &rxdata) == 0) { // 解析成功
                     Protocol_Cmd_Dispatch(&rxdata); //分发指令
@@ -499,7 +499,9 @@ void StartComTask(void *argument)
                 //将干净的数据存入全局情报站
                 SysMsg.Torque[0] = parsed_torque[0];
                 SysMsg.Torque[1] = parsed_torque[1];
-                App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]);    
+                #if debug_t
+                //App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]); 
+                #endif   
                 osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY);  //释放通知
             } else {
                     // 如果是干扰数据或者单读取数据，仅仅打印警告，绝不触发电机运行

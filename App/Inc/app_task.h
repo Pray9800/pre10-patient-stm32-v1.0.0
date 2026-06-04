@@ -21,7 +21,7 @@
 // 软件版本
 #define VER_X    1
 #define VER_Y    0
-
+#define debug_t  0
 #define TASK_TIME        100  // 任务循环时间 单位 ms
 
 
