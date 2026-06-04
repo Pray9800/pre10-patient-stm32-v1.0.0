@@ -448,7 +448,7 @@ void StartComTask(void *argument)
     void StartComTask(void *argument)
     {
         uint32_t flags;
-        uint8_t  rxbuf[256] = {0};      // 待解析的数据包
+        uint8_t  rxbuf[128] = {0};      // 待解析的数据包
         rxdata_t rxdata ;	    // 解析后的数据包 最多可以保存10个字节数据
         // txdata_t txdata ;	    // 待发送的数据包
         //用于存放力矩解析结果的局部变量
