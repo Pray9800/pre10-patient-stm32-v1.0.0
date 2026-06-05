@@ -23,7 +23,7 @@
 
 
 #define KP_FORWARD     8     // 直行敏感度（越大推得越轻松）
-#define KP_TURN        4     // 转向敏感度（略小于直行，防止转弯太猛）
+#define KP_TURN        2     // 转向敏感度（略小于直行，防止转弯太猛）
 #define KP_SPEED       5      //力矩限速
 #define DEADZONE_FWD   15   // 直行死区：双手平均推力超过这个值才走
 #define DEADZONE_TURN  30    // 转向死区 左右手受力差值小于20时，直线行驶
@@ -31,7 +31,7 @@
 #define DEADZONE       10     // 死区 
 #define MAX_RPM        500   // 极限速度
 #define MAX_STEP       15    // 斜坡加速度，决定起步是否丝滑
-#define FILTER_NUM     5     // 滤波深度
+#define FILTER_NUM     10     // 滤波深度
 #define lose_torque_cnt     3     // 反馈丢包三次就停机
 
 
@@ -48,6 +48,7 @@
 
 void StartTorqueMove(void *argument)
 {
+    osDelay(2000); // 等2秒钟
     // --- 传感器清零 --- 双通道清零 发送两次 
     uint8_t ch1_cmd[8] = {0x01, 0x05, 0x00, 0x64, 0xFF, 0x00, 0xCD, 0xE5};
     uint8_t ch2_cmd[8] = {0x01, 0x05, 0x00, 0x65, 0xFF, 0x00, 0x9C, 0x25};  
@@ -65,14 +66,14 @@ void StartTorqueMove(void *argument)
     
     uint32_t tick_start; // 用于精准控制 20ms 循环
 
-    static uint8_t key_history = 0x00;
+    static uint8_t key_history = 0x00;  //用于消抖8个位可以实现160ms
     uint8_t safe_motor_enable = 0;//消抖通过
     uint8_t torque_timeout_cnt = 0; // 新增丢包计数器
     for(;;)
     {
         // 记录循环开始的精确时间
         tick_start = osKernelGetTickCount(); 
-        key_history = (key_history << 1) | (Trolley_Move() == 1); //采用位移消抖 方便台车调试寻找一个合适的消抖事件，控制20ms到80ms
+        key_history = (key_history << 1) | (Trolley_Move() == 1); //采用位移消抖 方便台车调试寻找一个合适的消抖事件，控制20ms到160ms
         
         //按下消抖 80ms看最低 4 位，必须连续 4 次全是 1
         if ((key_history & 0x0F) == 0x0F) 
@@ -104,14 +105,15 @@ void StartTorqueMove(void *argument)
             if ((wait_flags & FLAG_TORQUE_READY) == FLAG_TORQUE_READY)
             {
                 torque_timeout_cnt = 0;//没丢包
-                // 1. 滑动平均滤波
-                filter_r_buf[filter_idx] = SysMsg.Torque[0];
+                //  滑动平均滤波
+                filter_r_buf[filter_idx] = SysMsg.Torque[0]; //环形缓冲区存储最新的力矩数据
                 filter_l_buf[filter_idx] = SysMsg.Torque[1];
-                filter_idx = (filter_idx + 1) % FILTER_NUM;
+                filter_idx = (filter_idx + 1) % FILTER_NUM; //取余等于1 2 3 4 0
 
                 int32_t sum_r = 0, sum_l = 0;
                 for(int i = 0; i < FILTER_NUM; i++) {
-                    sum_r += filter_r_buf[i];  sum_l += filter_l_buf[i];
+                    sum_r += filter_r_buf[i];  
+                    sum_l += filter_l_buf[i];
                 }
                 int32_t raw_r = sum_r / FILTER_NUM;
                 int32_t raw_l = sum_l / FILTER_NUM;
@@ -120,17 +122,17 @@ void StartTorqueMove(void *argument)
                 // 运动学解耦控制 (分离直行与转向)
                 // ==========================================
                 // 计算共模(直行)和差模(转向)力矩
-                int32_t force_fwd  = (raw_l + raw_r) / 2; 
-                int32_t force_turn = (raw_l - raw_r) / 2; 
+                int32_t force_fwd  = (raw_l + raw_r) / 2; //要求平均值大于设定才走
+                int32_t force_turn = (raw_l - raw_r) / 2; //两轮插值转向
 
-                int32_t v_fwd = 0, v_turn = 0;
+                int32_t v_fwd = 0, v_turn = 0;//直线和转弯
 
-                // 处理直行死区和增益
-                if (force_fwd > DEADZONE_FWD)       v_fwd = (force_fwd - DEADZONE_FWD) * KP_FORWARD;
+                // 处理直行死区和增益 防止蛇形走位 死区
+                if (force_fwd > DEADZONE_FWD)       v_fwd = (force_fwd - DEADZONE_FWD) * KP_FORWARD;//大于死区部分才进行放大
                 else if (force_fwd < -DEADZONE_FWD) v_fwd = (force_fwd + DEADZONE_FWD) * KP_FORWARD;
 
-                // 处理转向死区和增益 (克服双手力量不均引起的蛇行)
-                if (force_turn > DEADZONE_TURN)       v_turn = (force_turn - DEADZONE_TURN) * KP_TURN;
+                // 处理转向死区和增益 
+                if (force_turn > DEADZONE_TURN)       v_turn = (force_turn - DEADZONE_TURN) * KP_TURN;//大于死区才进行放大
                 else if (force_turn < -DEADZONE_TURN) v_turn = (force_turn + DEADZONE_TURN) * KP_TURN;
 
                 // 重新合成左右轮目标速度 (左轮=直行+转向，右轮=直行-转向)
@@ -174,22 +176,24 @@ void StartTorqueMove(void *argument)
                 current_r = 0;
                 memset(filter_l_buf, 0, sizeof(filter_l_buf));
                 memset(filter_r_buf, 0, sizeof(filter_r_buf));
-                // 连续发 3 次 0 速指令 (共消化 60ms)确保不丢包
-                for(int i = 0; i < 3; i++) {
+                // 连续发 20次 0 速指令 确保不丢包保证减速
+                for(int i = 0; i < 20; i++) {
                     BSP_ServoMotor_SetSpeed(0, 0);
-                    osDelay(20); 
+                    osDelay(40); 
                 }
 
                 osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY);
                 //  (底层会发出 00 00 00 00)
                 BSP_ServoMotor_Stop();
-                uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAny, 30);
-                // 至少收到了一个轮子的ACK，或者全收到)
+                uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAll, 30);
+               
                 if (ack_flags != osFlagsErrorTimeout) {
                     App_Printf("Motor Disabled! ACK OK!  servo_is_enabled is %d\r\n",servo_is_enabled );
                 } else {
                     // 两个轮子都丢包了
-                    App_Printf("Motor Disabled! ACK Timeout!  servo_is_enabled is %d \r\n",servo_is_enabled);
+                App_Printf("Motor Disabled! ACK Timeout!  servo_is_enabled is %d \r\n",servo_is_enabled);                
+                // BSP_ServoMotor_Stop();
+
                 }
                 servo_is_enabled = 0;
                         

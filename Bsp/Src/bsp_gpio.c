@@ -106,3 +106,7 @@ void BSP_Brake_Control(uint8_t reg_val)
 
 
 
+void sys_reset(void)
+{
+    NVIC_SystemReset();
+}

@@ -136,6 +136,7 @@ void BSP_ParkMotors_Stop(void);    // 全停止 (对应老代码 case 3)
 // 抱闸控制接口 (输入协议解析值)
 void BSP_Brake_Control(uint8_t reg_val);
 
+void sys_reset(void);
 
 
 

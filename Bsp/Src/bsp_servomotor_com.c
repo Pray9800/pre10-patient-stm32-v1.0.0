@@ -31,17 +31,17 @@ void BSP_ServoMotor_Init(void)
     uint8_t motostart[4]    = {0x00, 0x00, 0x01, 0x01}; // 启动电机
 
     // 1. 设置速度模式
-    osDelay(2);
+    osDelay(10);
     Servo_Left_Send(speedmodebuf, 4);
     Servo_Right_Send(speedmodebuf, 4);
-
+   
     // 2. 加减速时间设置
-    osDelay(2);
+    osDelay(10);
     Servo_Left_Send(speedtimebuf, 4);
     Servo_Right_Send(speedtimebuf, 4);
 
     // 3. 启动电机 (使能)
-    osDelay(2);
+    osDelay(10);
     Servo_Left_Send(motostart, 4);
     Servo_Right_Send(motostart, 4);
 }

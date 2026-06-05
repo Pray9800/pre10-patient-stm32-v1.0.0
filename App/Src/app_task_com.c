@@ -496,7 +496,7 @@ void StartComTask(void *argument)
                  torque_count = Torque_Parse_mode(rxbuf, current_len_u3, parsed_torque);
             //解析
                   if (torque_count == 2) {
-                //将干净的数据存入全局情报站
+                //将干净的数据存入全局 
                 SysMsg.Torque[0] = parsed_torque[0];
                 SysMsg.Torque[1] = parsed_torque[1];
                 #if debug_t
