@@ -151,7 +151,9 @@ void StartTorqueMove(void *argument)
                 if (target_r - current_r > MAX_STEP)       current_r += MAX_STEP;
                 else if (target_r - current_r < -MAX_STEP) current_r -= MAX_STEP;
                 else                                       current_r = target_r;
-                //  App_Printf("current_l is %ld  ,current_r is :%ld \n\r ",current_l,current_r );
+               #if debug_t
+                App_Printf("current_l is %ld  ,current_r is :%ld \n\r ",current_l,current_r );
+                #endif
                 // 最终输出 (右轮镜像取反)
                 BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
             }
@@ -162,6 +164,7 @@ void StartTorqueMove(void *argument)
                     current_l = 0; current_r = 0;
                     BSP_ServoMotor_SetSpeed(0, 0);
                     torque_timeout_cnt = lose_torque_cnt;
+
                 }
              }
         }
@@ -188,14 +191,17 @@ void StartTorqueMove(void *argument)
                 uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAll, 30);
                
                 if (ack_flags != osFlagsErrorTimeout) {
+                    servo_is_enabled = 0;
+
                     App_Printf("Motor Disabled! ACK OK!  servo_is_enabled is %d\r\n",servo_is_enabled );
+
                 } else {
                     // 两个轮子都丢包了
                 App_Printf("Motor Disabled! ACK Timeout!  servo_is_enabled is %d \r\n",servo_is_enabled);                
-                // BSP_ServoMotor_Stop();
+                BSP_ServoMotor_Stop();
 
                 }
-                servo_is_enabled = 0;
+                // servo_is_enabled = 0;
                         
             }   
                 osThreadFlagsClear(FLAG_TORQUE_READY); 

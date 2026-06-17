@@ -500,7 +500,7 @@ void StartComTask(void *argument)
                 SysMsg.Torque[0] = parsed_torque[0];
                 SysMsg.Torque[1] = parsed_torque[1];
                 #if debug_t
-                //App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]); 
+                App_Printf("Torque Parsed: Right=%ld, Left=%ld\r\n", SysMsg.Torque[0], SysMsg.Torque[1]); 
                 #endif   
                 osThreadFlagsSet(torqueMoveTaskHandle, FLAG_TORQUE_READY);  //释放通知
             } else {
