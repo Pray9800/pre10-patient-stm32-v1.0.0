@@ -29,10 +29,10 @@
 #define DEADZONE_TURN  30    // 转向死区 左右手受力差值小于20时，直线行驶
 
 #define DEADZONE       10     // 死区 
-#define MAX_RPM        500   // 极限速度
+#define MAX_RPM        240   // 极限速度 差不多是2m/s
 #define MAX_STEP       15    // 斜坡加速度，决定起步是否丝滑
 #define FILTER_NUM     10     // 滤波深度
-#define lose_torque_cnt     3     // 反馈丢包三次就停机
+#define lose_torque_cnt     3    // 反馈丢包三次就停机
 
 
 
