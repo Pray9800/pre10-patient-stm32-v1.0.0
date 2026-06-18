@@ -515,23 +515,58 @@ void StartComTask(void *argument)
                 // 驱动轮1号反馈 
                 memcpy(rxbuf, rxbuf_u2, rxlen_u2);
                 // 校验：提取前两个字节，判断是否是速度应答或停机应答
-            if (rxlen_u2 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00)) {
-            osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U2_ACK_READY);
-    }
-                        //打印读取到数据
+            if (rxlen_u2 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00))
+            {
+                osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U2_ACK_READY);
+            }
+
+            else if(rxlen_u2 >= 3 && (rxbuf[0] == 0x80 && rxbuf[1] == 0x00))
+            {
+                 uint8_t status_word = rxbuf[2]; // 第3个字节是状态字    
+                // 掩码 0x7E 检查 bit1~bit6 (过流、过压、位置偏差过大、欠压、过载)
+                if ((status_word & 0x7E) != 0) {
+                    
+                    BSP_ServoMotor_Stop();      // 底层强制发0速
+                    App_Printf("FATAL ERR: 左轮(UART2)故障! 状态字: %02X\r\n", status_word);                     
+                    // 细化打印，方便你们调试找原因
+                    if (status_word & 0x02) App_Printf(" -> 左轮 过流!\r\n");
+                    if (status_word & 0x40) App_Printf(" -> 左轮 过载(推太重)!\r\n");
+                    if (status_word & 0x10) App_Printf(" -> 左轮 位置超差(卡死)!\r\n");
+                }
+            }
+                 //打印读取到数据
                 // App_Printf("ComTaskU2: Received length: %d\r\n", rxlen_u2);
                 // for (int i = 0; i < rxlen_u2; i++) {
                 //     App_Printf("%02X ", rxbuf[i]);
                 // }
                 // App_Printf("\r\n");
             }
+
             
+
+
+
+
             if (flags & EVENT_UART4_RX) {
                 // 驱动轮2号反馈 
                 memcpy(rxbuf, rxbuf_u4, rxlen_u4);
             if (rxlen_u4 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00)) {
                     osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U4_ACK_READY);
                 }
+            else if(rxlen_u2 >= 3 && (rxbuf[0] == 0x80 && rxbuf[1] == 0x00))
+            {
+                 uint8_t status_word = rxbuf[2]; // 第3个字节是状态字    
+                // 掩码 0x7E 检查 bit1~bit6 (过流、过压、位置偏差过大、欠压、过载)
+                if ((status_word & 0x7E) != 0) {
+                    
+                    BSP_ServoMotor_Stop();      // 底层强制发0速
+                    App_Printf("FATAL ERR: 左轮(UART2)故障! 状态字: %02X\r\n", status_word);                     
+                    // 细化打印，方便你们调试找原因
+                    if (status_word & 0x02) App_Printf(" -> 左轮 过流!\r\n");
+                    if (status_word & 0x40) App_Printf(" -> 左轮 过载(推太重)!\r\n");
+                    if (status_word & 0x10) App_Printf(" -> 左轮 位置超差(卡死)!\r\n");
+                }
+            }
                 // App_Printf("ComTaskU4: Received length: %d\r\n", rxlen_u4);
                 // for (int i = 0; i < rxlen_u4; i++) {
                 // App_Printf("%02X ", rxbuf[i]);

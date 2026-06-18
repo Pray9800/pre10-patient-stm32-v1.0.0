@@ -26,13 +26,39 @@
 #define KP_TURN        2     // 转向敏感度（略小于直行，防止转弯太猛）
 #define KP_SPEED       5      //力矩限速
 #define DEADZONE_FWD   15   // 直行死区：双手平均推力超过这个值才走
-#define DEADZONE_TURN  30    // 转向死区 左右手受力差值小于20时，直线行驶
+#define DEADZONE_TURN  25    // 转向死区 左右手受力差值小于25时，直线行驶
 
 #define DEADZONE       10     // 死区 
 #define MAX_RPM        240   // 极限速度 差不多是2m/s
 #define MAX_STEP       15    // 斜坡加速度，决定起步是否丝滑
 #define FILTER_NUM     10     // 滤波深度
 #define lose_torque_cnt     3    // 反馈丢包三次就停机
+
+
+
+uint8_t motor_fatal_error_flag = 0;
+
+
+
+
+
+/*******************************************************
+ Author: PAN        Version: V1.1       
+ Function:          BSP_ServoMotor_RequestStatus
+ Description:       向左右轮发送 80 00 80 请求驱动器包含故障码在内的完整状态
+*******************************************************/
+void BSP_ServoMotor_RequestStatus(void)
+{
+    uint8_t tx_buf[3] = {0x80, 0x00, 0x80}; 
+    
+    // 向左轮发送查询
+    Servo_Left_Send(tx_buf, 3);
+    // 稍微延时2ms，防止串口DMA发送/接收冲突或粘包
+    osDelay(2); 
+    // 向右轮发送查询
+    Servo_Right_Send(tx_buf, 3);
+}
+
 
 
 
@@ -68,7 +94,11 @@ void StartTorqueMove(void *argument)
 
     static uint8_t key_history = 0x00;  //用于消抖8个位可以实现160ms
     uint8_t safe_motor_enable = 0;//消抖通过
-    uint8_t torque_timeout_cnt = 0; // 新增丢包计数器
+    uint8_t torque_timeout_cnt = 0; // 丢包计数器
+    uint8_t status_check_cnt = 0; //  状态查询计数器 计数满25代表500ms  50代表1000ms 查询一次电机运行状态
+
+
+
     for(;;)
     {
         // 记录循环开始的精确时间
@@ -80,7 +110,7 @@ void StartTorqueMove(void *argument)
         {
             safe_motor_enable = 1; 
         } 
-        // 松开消抖 20ms只看最低 1 位，只要有 1 次是 0
+        // 松开消抖 20ms只看最低 1 位，只要有 1 次是 0 ，也就是20ms
         else if ((key_history & 0x01) == 0x00) 
         {
             safe_motor_enable = 0; 
@@ -156,6 +186,18 @@ void StartTorqueMove(void *argument)
                 #endif
                 // 最终输出 (右轮镜像取反)
                 BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
+
+
+
+                // 输出完电机控制后， 降频查询状态逻辑 
+                status_check_cnt++;
+                // 25 * 20ms = 500ms，每2秒查询一次，电机运行状态
+                if (status_check_cnt >= 100) 
+                {
+                    status_check_cnt = 0;
+                    BSP_ServoMotor_RequestStatus(); 
+                }
+
             }
             else  //假如力矩没有传输了 也先暂停  也可以改成原速度推进  现在版本是连续丢包3次
             {  
@@ -164,7 +206,6 @@ void StartTorqueMove(void *argument)
                     current_l = 0; current_r = 0;
                     BSP_ServoMotor_SetSpeed(0, 0);
                     torque_timeout_cnt = lose_torque_cnt;
-
                 }
              }
         }
@@ -173,7 +214,6 @@ void StartTorqueMove(void *argument)
         {
             if (servo_is_enabled) {
                  
-
                 // 刹车/清空状态
                 current_l = 0; 
                 current_r = 0;
@@ -212,6 +252,9 @@ void StartTorqueMove(void *argument)
         osDelayUntil(tick_start + 20); 
     }
 }
+
+
+
 
 
 

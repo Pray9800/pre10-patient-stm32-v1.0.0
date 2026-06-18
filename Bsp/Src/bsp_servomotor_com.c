@@ -12,9 +12,6 @@
 
 
 
-#define Servo_Left_Send(data, len)  Trolley_Drive_RS232_ComTX1(data, len)
-#define Servo_Right_Send(data, len) Trolley_Drive_RS232_ComTX2(data, len)
-
 
 
 

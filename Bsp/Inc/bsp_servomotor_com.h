@@ -2,6 +2,13 @@
 #define __BSP_SERVOMOTOR_COM_H__
 
 #include "main.h"
+#include "bsp_usart.h"
+
+
+
+#define Servo_Left_Send(data, len)  Trolley_Drive_RS232_ComTX1(data, len)
+#define Servo_Right_Send(data, len) Trolley_Drive_RS232_ComTX2(data, len)
+
 
 // 伺服电机初始化
 void BSP_ServoMotor_Init(void);
