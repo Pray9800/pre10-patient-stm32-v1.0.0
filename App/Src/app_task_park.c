@@ -74,34 +74,46 @@ void FOOTP_Ctrl(uint8_t state)
  Return:            无
  Others:            无
 *******************************************************/
- 
 void StartParkTask(void *argument)
 {
+    // 默认和你的初始电平一致（松开为0xFF）
+    uint8_t current_ctrl_mode = 0xFF; 
 
- 
     for(;;)
-        {       
-            // 判断推杆按键状态
-            if (GET_KEY_PARK() == GPIO_PIN_SET) 
-            {
-                // 按下：收回推杆
-                BSP_ParkMotors_Retract();
-                g_park_state_ctrl=0x00;   //全局变量提供U6读取台车升起还是降落
-            }
-            else if(GET_KEY_PARK() == GPIO_PIN_RESET) 
-            {           
-                // 松开：顶起推杆
-                BSP_ParkMotors_Extend();
-                g_park_state_ctrl=0xFF; 
-            }
-            else
-            {
-                // BSP_ParkMotors_Stop();
-            }
+    {       
+        // 按下(SET)，且不是处于收回状态时，消抖校验
+        if (GET_KEY_PARK() == GPIO_PIN_SET && current_ctrl_mode != 0x00) 
+        {
+            //  20ms 消抖
+            osDelay(20); 
 
-            osDelay(100); 
+            // 是否仍然是按下状态
+            if (GET_KEY_PARK() == GPIO_PIN_SET)
+            {
+                // 确认为稳定按下：收回推杆
+                BSP_ParkMotors_Retract();
+                g_park_state_ctrl = 0x00;   // 全局变量提供U6读取
+                current_ctrl_mode = 0x00;   
+            }
         }
-        
+        // 
+        else if (GET_KEY_PARK() == GPIO_PIN_RESET && current_ctrl_mode != 0xFF) 
+        {           
+            // 20ms 消抖
+            osDelay(20); 
+
+            // 是否仍然是松开状态
+            if (GET_KEY_PARK() == GPIO_PIN_RESET)
+            {
+                // 顶起
+                BSP_ParkMotors_Extend();
+                g_park_state_ctrl = 0xFF; 
+                current_ctrl_mode = 0xFF;   // 彻底锁死
+            }
+        }
+
+        osDelay(100); 
+    }
 }
 
 
