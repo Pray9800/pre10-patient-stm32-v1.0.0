@@ -74,7 +74,7 @@ osThreadId_t torqueMoveTaskHandle;
 const osThreadAttr_t torqueMoveTask_attributes = {
   .name = "torqueMoveTask",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityAboveNormal1,
 };
 /* Definitions for armTask */
 osThreadId_t armTaskHandle;
@@ -102,7 +102,7 @@ osThreadId_t breakTaskHandle;
 const osThreadAttr_t breakTask_attributes = {
   .name = "breakTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal7,
+  .priority = (osPriority_t) osPriorityBelowNormal2,
 };
 /* Definitions for printfMutex */
 osMutexId_t printfMutexHandle;
