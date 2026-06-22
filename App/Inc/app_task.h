@@ -87,9 +87,9 @@ extern volatile uint8_t g_brake_state_ctrl; // 全局变量：抱闸状态控制
 extern volatile uint8_t g_park_state_ctrl;  // 全局变量：驻车状态控制
 extern volatile uint8_t g_ups_state_ctrl ;
 extern volatile uint8_t light_reg[4]; //灯带状态寄存器数据区
-extern volatile uint16_t adc_current_height; 
+extern volatile uint16_t  adc_current_height; 
 extern volatile uint16_t  adc_targart_height  ; 
-extern volatile uint8_t height_auto_mode  ; // 高度自动模式标志位
+extern volatile uint8_t  height_auto_mode  ; // 高度自动模式标志位
 extern volatile uint8_t    height_update_down; //升降指令
 
 void FOOTP_Ctrl(uint8_t state);
