@@ -23,12 +23,11 @@
 
 
 #define KP_FORWARD     8     // 直行敏感度（越大推得越轻松）
-#define KP_TURN        2     // 转向敏感度（略小于直行，防止转弯太猛）
-#define KP_SPEED       5      //力矩限速
+#define KP_TURN        3     // 转向敏感度（略小于直行，防止转弯太猛）
+// #define KP_SPEED       5      //力矩限速
 #define DEADZONE_FWD   15   // 直行死区：双手平均推力超过这个值才走
-#define DEADZONE_TURN  25    // 转向死区 左右手受力差值小于25时，直线行驶
-
-#define DEADZONE       10     // 死区 
+#define DEADZONE_TURN  10    // 转向死区 左右手受力差值小于10时，直线行驶
+// #define DEADZONE       10     // 死区 
 #define MAX_RPM        240   // 极限速度 差不多是2m/s
 #define MAX_STEP       15    // 斜坡加速度，决定起步是否丝滑
 #define FILTER_NUM     10     // 滤波深度
@@ -78,11 +77,14 @@ void StartTorqueMove(void *argument)
     // --- 传感器清零 --- 双通道清零 发送两次 
     uint8_t ch1_cmd[8] = {0x01, 0x05, 0x00, 0x64, 0xFF, 0x00, 0xCD, 0xE5};
     uint8_t ch2_cmd[8] = {0x01, 0x05, 0x00, 0x65, 0xFF, 0x00, 0x9C, 0x25};  
+    uint8_t decimal_cmd[13] = {0x01, 0x10, 0x03, 0x84, 0x00, 0x02, 0x04, 0x00,0x00,0x00,0x00,0x2f,0x0C}; 
     Torque_RS232_Send(ch1_cmd, 8);
     osDelay(20); 
     Torque_RS232_Send(ch2_cmd, 8);
     osDelay(20); 
-   
+    // Torque_RS232_Send(decimal_cmd, 13); //设置小数点1位 200等于200N
+    // osDelay(20); 
+
     BSP_ServoMotor_Init();//初始化配置参数
     uint8_t servo_is_enabled = 0; 
 
@@ -136,7 +138,7 @@ void StartTorqueMove(void *argument)
             {
                 torque_timeout_cnt = 0;//没丢包
                 //  滑动平均滤波
-                filter_r_buf[filter_idx] = SysMsg.Torque[0]; //环形缓冲区存储最新的力矩数据
+                filter_r_buf[filter_idx] = SysMsg.Torque[0]; //环形缓冲区存储最新的力矩数据  数据是多少就代表多少的力
                 filter_l_buf[filter_idx] = SysMsg.Torque[1];
                 filter_idx = (filter_idx + 1) % FILTER_NUM; //取余等于1 2 3 4 0
 
@@ -147,13 +149,13 @@ void StartTorqueMove(void *argument)
                 }
                 int32_t raw_r = sum_r / FILTER_NUM;
                 int32_t raw_l = sum_l / FILTER_NUM;
-
+                //raw_l = raw_l + 11; 右力矩偏大补偿 
                 // ==========================================
                 // 运动学解耦控制 (分离直行与转向)
                 // ==========================================
                 // 计算共模(直行)和差模(转向)力矩
                 int32_t force_fwd  = (raw_l + raw_r) / 2; //要求平均值大于设定才走
-                int32_t force_turn = (raw_l - raw_r) / 2; //两轮插值转向
+                int32_t force_turn = (raw_l - raw_r); //两轮插值转向
 
                 int32_t v_fwd = 0, v_turn = 0;//直线和转弯
 
@@ -255,8 +257,145 @@ void StartTorqueMove(void *argument)
 
 
 
+#if 0
+void StartTorqueMove(void *argument)
+{
+    // --- 1. 传感器清零 (拉长延时，确保传感器内部寄存器100%完全归零) ---
+    uint8_t ch1_cmd[8] = {0x01, 0x05, 0x00, 0x64, 0xFF, 0x00, 0xCD, 0xE5};
+    uint8_t ch2_cmd[8] = {0x01, 0x05, 0x00, 0x65, 0xFF, 0x00, 0x9C, 0x25};  
+    Torque_RS232_Send(ch1_cmd, 8);
+    osDelay(100); 
+    Torque_RS232_Send(ch2_cmd, 8);
+    osDelay(200); // 给足模块标定时间，物理洗净初始应力
+   
+    BSP_ServoMotor_Init();
+    uint8_t servo_is_enabled = 0; 
 
+    int32_t current_l = 0, current_r = 0; 
+    int32_t filter_l_buf[FILTER_NUM] = {0}, filter_r_buf[FILTER_NUM] = {0}; 
+    uint8_t filter_idx = 0;
+    uint32_t tick_start; 
 
+    static uint8_t key_history = 0x00;  
+    uint8_t safe_motor_enable = 0;
+    uint8_t torque_timeout_cnt = 0; 
+
+    for(;;)
+    {
+        tick_start = osKernelGetTickCount(); 
+        key_history = (key_history << 1) | (Trolley_Move() == 1); 
+        
+        if ((key_history & 0x0F) == 0x0F)      safe_motor_enable = 1; 
+        else if ((key_history & 0x01) == 0x00) safe_motor_enable = 0;
+        
+        if (safe_motor_enable) // --- 握紧手柄助力模式 ---
+        { 
+            osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY | FLAG_TORQUE_READY);  
+            BSP_Torque_RequestData(TORQUE_MODE_DOUBLE);  
+            
+            if (!servo_is_enabled) {
+                BSP_ServoMotor_Start();
+                osDelay(10);
+                current_l = 0; current_r = 0; 
+                servo_is_enabled = 1;
+                App_Printf("START \r\n");
+            }
+
+            uint32_t wait_flags = osThreadFlagsWait(FLAG_TORQUE_READY, osFlagsWaitAny, 15);
+            if ((wait_flags & FLAG_TORQUE_READY) == FLAG_TORQUE_READY)
+            {
+                torque_timeout_cnt = 0;
+                
+                // 滑动平均滤波保持平稳
+                filter_r_buf[filter_idx] = SysMsg.Torque[0]; 
+                filter_l_buf[filter_idx] = SysMsg.Torque[1];
+                filter_idx = (filter_idx + 1) % FILTER_NUM; 
+
+                int32_t sum_r = 0, sum_l = 0;
+                for(int i = 0; i < FILTER_NUM; i++) {
+                    sum_r += filter_r_buf[i];  
+                    sum_l += filter_l_buf[i];
+                }
+                int32_t raw_r = sum_r / FILTER_NUM;
+                int32_t raw_l = sum_l / FILTER_NUM;
+
+                // =======================================================
+                // 推翻重构：【左右双通道完全独立映射模型】
+                // =======================================================
+                int32_t target_l = 0;
+                int32_t target_r = 0;
+
+                // 左通道独立过死区：左手前推或后拉，只决定左电机速度
+                if (raw_l > DEADZONE_PHYS)       target_l = (raw_l - DEADZONE_PHYS) * KP_MOTOR;
+                else if (raw_l < -DEADZONE_PHYS) target_l = (raw_l + DEADZONE_PHYS) * KP_MOTOR;
+
+                // 右通道独立过死区：右手前推或后拉，只决定右电机速度
+                if (raw_r > DEADZONE_PHYS)       target_r = (raw_r - DEADZONE_PHYS) * KP_MOTOR;
+                else if (raw_r < -DEADZONE_PHYS) target_r = (raw_r + DEADZONE_PHYS) * KP_MOTOR;
+
+                // 速度硬限幅
+                if (target_l > MAX_RPM) target_l = MAX_RPM; else if (target_l < -MAX_RPM) target_l = -MAX_RPM;
+                if (target_r > MAX_RPM) target_r = MAX_RPM; else if (target_r < -MAX_RPM) target_r = -MAX_RPM;               
+
+                // 软件斜坡缓冲限制（MAX_STEP 15 牢牢压制住 300ms 硬件加速度）
+                if (target_l - current_l > MAX_STEP)       current_l += MAX_STEP;
+                else if (target_l - current_l < -MAX_STEP) current_l -= MAX_STEP;
+                else                                       current_l = target_l;
+                
+                if (target_r - current_r > MAX_STEP)       current_r += MAX_STEP;
+                else if (target_r - current_r < -MAX_STEP) current_r -= MAX_STEP;
+                else                                       current_r = target_r;
+
+                // 最终输出 (右轮镜像取反)
+                BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
+            }
+            else  
+            {  
+                // 异常丢包：采用渐进式斜坡减速，而不是直接卡死，体验更丝滑
+                torque_timeout_cnt++;
+                if (torque_timeout_cnt >= lose_torque_cnt) {
+                    if (current_l > 0) current_l -= MAX_STEP; else if (current_l < 0) current_l += MAX_STEP;
+                    if (current_r > 0) current_r -= MAX_STEP; else if (current_r < 0) current_r += MAX_STEP;
+                    BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
+                }
+            }
+        }
+        else // --- 松开手柄（刹车减速模式） ---
+        {
+            if (servo_is_enabled) {
+                // 【医疗非阻塞修改】：绝对不要在 OS 循环里用 for 循环+时间挂起死等！
+                // 充分利用主循环 20ms 的快节奏，通过斜坡函数自动将速度快速、平稳地递减抽干至 0
+                if (current_l != 0 || current_r != 0) 
+                {
+                    if (current_l > 0) { current_l -= MAX_STEP; if(current_l < 0) current_l = 0; }
+                    else { current_l += MAX_STEP; if(current_l > 0) current_l = 0; }
+
+                    if (current_r > 0) { current_r -= MAX_STEP; if(current_r < 0) current_r = 0; }
+                    else { current_r += MAX_STEP; if(current_r > 0) current_r = 0; }
+
+                    BSP_ServoMotor_SetSpeed(current_l, current_r * -1);
+                }
+                else // 速度已经顺利降为 0，驱动器完全刹稳，执行断电失能
+                {
+                    memset(filter_l_buf, 0, sizeof(filter_l_buf));
+                    memset(filter_r_buf, 0, sizeof(filter_r_buf));
+                    
+                    osThreadFlagsClear(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY);
+                    BSP_ServoMotor_Stop();
+                    uint32_t ack_flags = osThreadFlagsWait(FLAG_U2_ACK_READY | FLAG_U4_ACK_READY, osFlagsWaitAll, 30);
+                   
+                    servo_is_enabled = 0;
+                    App_Printf("Motor Safely Stopped!\r\n");
+                }
+            }   
+            osThreadFlagsClear(FLAG_TORQUE_READY); 
+        }
+
+        osDelayUntil(tick_start + 20); 
+    }
+}
+
+#endif
 
 #if 0
 // =====================================
