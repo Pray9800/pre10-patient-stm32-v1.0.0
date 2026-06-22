@@ -555,8 +555,8 @@ void StartComTask(void *argument)
                 if ((status_word & 0x7E) != 0) {
                     
                     BSP_ServoMotor_Stop();      // 底层强制发0速
-                    App_Printf("FATAL ERR: 左轮(UART2)故障! 状态字: %02X\r\n", status_word);                     
-                    // 细化打印，方便你们调试找原因
+                    App_Printf("FATAL ERR: 左轮(UART4)故障! 状态字: %02X\r\n", status_word);                     
+                    // 调试找原因
                     if (status_word & 0x02) App_Printf(" -> 左轮 过流!\r\n");
                     if (status_word & 0x40) App_Printf(" -> 左轮 过载(推太重)!\r\n");
                     if (status_word & 0x10) App_Printf(" -> 左轮 位置超差(卡死)!\r\n");

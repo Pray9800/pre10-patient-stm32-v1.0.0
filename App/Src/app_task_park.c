@@ -76,7 +76,7 @@ void FOOTP_Ctrl(uint8_t state)
 *******************************************************/
 void StartParkTask(void *argument)
 {
-    // 默认和你的初始电平一致（松开为0xFF）
+    //  随机初始化
     uint8_t current_ctrl_mode = 0xFF; 
 
     for(;;)
