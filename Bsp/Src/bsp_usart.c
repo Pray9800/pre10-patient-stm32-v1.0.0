@@ -182,13 +182,6 @@ void Torque_RS232_Send(uint8_t *data, uint32_t size)
    HAL_UART_Transmit(&huart3,data,size,100);
   // HAL_UART_Transmit_IT(&huart3,data,size);
 }
-//用不到
-HAL_StatusTypeDef Usart3_Send_Data(uint8_t *data, uint32_t size)
-{
-   
-    return HAL_UART_Transmit(&huart3, data, size, 0x200);
-}
-
 
 /*******************************************************
  Author: PAN        Version: V1.0       Date:2026/04/21

@@ -541,19 +541,14 @@ void StartComTask(void *argument)
                 // }
                 // App_Printf("\r\n");
             }
-
             
-
-
-
-
             if (flags & EVENT_UART4_RX) {
                 // 驱动轮2号反馈 
                 memcpy(rxbuf, rxbuf_u4, rxlen_u4);
             if (rxlen_u4 >= 2 && (rxbuf[0] == 0x00 && rxbuf[1] == 0x00)) {
                     osThreadFlagsSet(torqueMoveTaskHandle, FLAG_U4_ACK_READY);
                 }
-            else if(rxlen_u2 >= 3 && (rxbuf[0] == 0x80 && rxbuf[1] == 0x00))
+            else if(rxlen_u4 >= 3 && (rxbuf[0] == 0x80 && rxbuf[1] == 0x00))
             {
                  uint8_t status_word = rxbuf[2]; // 第3个字节是状态字    
                 // 掩码 0x7E 检查 bit1~bit6 (过流、过压、位置偏差过大、欠压、过载)

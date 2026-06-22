@@ -64,6 +64,5 @@ void Torque_RS232_Send(uint8_t *data, uint32_t size);
 void Trolley_Drive_RS232_ComTX1(uint8_t *data, uint32_t size);
 void Trolley_Drive_RS232_ComTX2(uint8_t *data, uint32_t size);
 void BSP_UART_Start_Receive(void);
-HAL_StatusTypeDef Usart3_Send_Data(uint8_t *data, uint32_t size);
 
 #endif /* __BSP_USART_H_ */
